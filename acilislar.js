@@ -103,7 +103,7 @@ const ACILIS_KITABI = {
   
   // --- KABUL EDİLMEYEN VEZİR GAMBİTİ (QGD - Derinlemesine 11 Hamle) ---
   "d2-d4 d7-d5 c2-c4 e7-e6": "♞b1-c3",
-  "d2-d4 d7-d5 c2-c4 e7-e6 ♞b1-c3": ["♞g8-f6", "♝f8-be7", "c7-c5"], // Klasik, Alatortsev, Tarrasch
+  "d2-d4 d7-d5 c2-c4 e7-e6 ♞b1-c3": ["♞g8-f6", "♝f8-e7", "c7-c5"], // Klasik, Alatortsev, Tarrasch
   "d2-d4 d7-d5 c2-c4 e7-e6 ♞b1-c3 ♞g8-f6": "♝c1-g5",
   "d2-d4 d7-d5 c2-c4 e7-e6 ♞b1-c3 ♞g8-f6 ♝c1-g5": "♝f8-e7",
   "d2-d4 d7-d5 c2-c4 e7-e6 ♞b1-c3 ♞g8-f6 ♝c1-g5 ♝f8-e7 e2-e3": "O-O",
@@ -198,11 +198,11 @@ const ACILIS_KITABI = {
   // ==========================================
   // 12. MODERN BENONİ SAVUNMASI (Modern Benoni)
   // ==========================================
-  "d2-d4 ♞g8-f6 c2-c4 c7-c5": "d2-d4-d5", // Oyundaki Rok/İlerleme formatı
-  "d2-d4 ♞g8-f6 c2-c4 c7-c5 d2-d5": "e7-e6",
-  "d2-d4 ♞g8-f6 c2-c4 c7-c5 d2-d5 e7-e6 ♞b1-c3": "exd5",
-  "d2-d4 ♞g8-f6 c2-c4 c7-c5 d2-d5 e7-e6 ♞b1-c3 exd5 c4xd5": "d7-d6",
-  "d2-d4 ♞g8-f6 c2-c4 c7-c5 d2-d5 e7-e6 ♞b1-c3 exd5 c4xd5 d7-d6 e2-e4": "g7-g6",
+  "d2-d4 ♞g8-f6 c2-c4 c7-c5": "d4-d5",
+  "d2-d4 ♞g8-f6 c2-c4 c7-c5 d4-d5": "e7-e6",
+  "d2-d4 ♞g8-f6 c2-c4 c7-c5 d4-d5 e7-e6 ♞b1-c3": "exd5",
+  "d2-d4 ♞g8-f6 c2-c4 c7-c5 d4-d5 e7-e6 ♞b1-c3 exd5 c4xd5": "d7-d6",
+  "d2-d4 ♞g8-f6 c2-c4 c7-c5 d4-d5 e7-e6 ♞b1-c3 exd5 c4xd5 d7-d6 e2-e4": "g7-g6",
 
   // ==========================================
   // 13. GRÜNFELD SAVUNMASI (Grünfeld Defense)
