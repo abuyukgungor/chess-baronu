@@ -184,6 +184,7 @@ const botCumleleri = {
             "Şahını biraz terleteceğim galiba. Yakaladım seni!"
         ],
         sahYedi: [
+            "Yapmasanaaa.",
             "Ya oof!"
         ],
         terfi: [
