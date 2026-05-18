@@ -1,0 +1,3409 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Tarayıcıda oynanabilen yerel satranç oyunu">
+  <title>Chess Baronu</title>
+  <style>
+    /* ===== GENEL SAYFA STİLLERİ ===== */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Cinzel:wght@700&display=swap');
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #0f0f0f;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(88, 60, 20, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 50%, rgba(88, 60, 20, 0.10) 0%, transparent 60%);
+      font-family: 'Inter', sans-serif;
+      color: #e0d6c8;
+      user-select: none;
+      padding: 10px;
+      overflow: hidden;
+    }
+
+    /* ===== ANA KONTEYNER ===== */
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      border-radius: 24px;
+      background: rgba(28, 24, 20, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6), 0 0 120px rgba(120, 80, 30, 0.08);
+      width: 100%;
+      max-width: 1020px;
+    }
+
+    /* ===== BAŞLIK ===== */
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 28px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #d4a34a, #f5deb3, #d4a34a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    /* ===== SIRA BİLGİSİ ===== */
+    #turn-info {
+      font-size: 16px;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.3s ease;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    #turn-info.white-turn {
+      color: #f5f0e8;
+      text-shadow: 0 0 12px rgba(245, 240, 232, 0.3);
+    }
+
+    #turn-info.black-turn {
+      color: #b8a080;
+      text-shadow: 0 0 12px rgba(184, 160, 128, 0.2);
+    }
+
+    #turn-info.in-check-text {
+      color: #ff6b6b !important;
+      text-shadow: 0 0 12px rgba(255, 107, 107, 0.4) !important;
+      border-color: rgba(255, 107, 107, 0.3) !important;
+      background: rgba(255, 107, 107, 0.08);
+    }
+
+    /* ===== ANA DÜZEN (Sol Tahta, Sağ Menü) ===== */
+    #main-wrapper {
+      display: flex;
+      gap: 32px;
+      align-items: stretch;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .game-area {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      align-items: center;
+    }
+
+    /* ===== YAN PANEL (Geçmiş ve Kontroller) ===== */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 16px 20px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    #move-history {
+      flex: 1;
+      min-height: 120px;
+      max-height: 365px;
+      overflow-y: auto;
+      background: #262421;
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      margin-bottom: 20px;
+    }
+
+    .side-panel.pve-active #move-history {
+      max-height: 200px;
+    }
+
+    /* Kaydırma Çubuğu (Scrollbar) Stili */
+    #move-history::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #move-history::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    #move-history::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    .history-row {
+      display: flex;
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 15px;
+      font-family: 'Inter', monospace;
+    }
+
+    .history-row:last-child {
+      border-bottom: none;
+    }
+
+    .history-row .step {
+      width: 40px;
+      color: #888;
+      font-weight: 600;
+    }
+
+    .history-row .move {
+      flex: 1;
+      color: #e0d6c8;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 3px;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .history-row .move:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .history-row .move.active-move {
+      background: rgba(212, 163, 74, 0.35);
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    /* ===== OYUNCU ÇUBUKLARI (Player Bars) ===== */
+    .player-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 500px;
+      padding: 6px 12px;
+      background: rgba(20, 18, 16, 0.95);
+      border: 1px solid rgba(212, 163, 74, 0.2);
+      color: #e0d6c8;
+      box-sizing: border-box;
+    }
+
+    #black-player-bar {
+      border-bottom: none;
+      border-radius: 12px 12px 0 0;
+    }
+
+    #white-player-bar {
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .player-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .player-profile img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid rgba(212, 163, 74, 0.4);
+      background: rgba(255, 255, 255, 0.05);
+      object-fit: cover;
+    }
+
+    #black-bar-avatar,
+    #white-bar-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      border: none !important;
+      background: transparent;
+      object-fit: cover;
+    }
+
+    .player-name {
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+    }
+
+    .captured-area {
+      display: flex;
+      gap: 3px;
+      font-size: 16px;
+      flex-wrap: wrap;
+      opacity: 0.8;
+      margin-left: 8px;
+      align-items: center;
+    }
+
+    .captured-count {
+      font-size: 10px;
+      font-weight: 700;
+      color: #888;
+      font-family: 'Inter', sans-serif;
+      margin-left: -2px;
+      opacity: 0.85;
+    }
+
+    /* ===== SAAT STİLLERİ ===== */
+    .timer {
+      font-family: 'Inter', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      padding: 8px 16px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #888;
+      /* Pasif renk */
+      transition: all 0.3s ease;
+    }
+
+    .timer.active {
+      background: rgba(212, 163, 74, 0.15);
+      border-color: rgba(212, 163, 74, 0.4);
+      color: #f5deb3;
+      text-shadow: 0 0 8px rgba(212, 163, 74, 0.3);
+      transform: scale(1.05);
+    }
+
+    .timer.warning {
+      background: rgba(239, 68, 68, 0.25) !important;
+      border-color: rgba(239, 68, 68, 0.5) !important;
+      color: #ff9999 !important;
+      text-shadow: 0 0 10px rgba(239, 68, 68, 0.5) !important;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+      transform: scale(1.05);
+    }
+
+    /* ===== SATRANÇ TAHTASI ===== */
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 500px;
+      height: 500px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 3px solid rgba(180, 140, 80, 0.35);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 60px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ===== KARE STİLLERİ ===== */
+    .square {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 46px;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.15s ease;
+      line-height: 1;
+    }
+
+    .square.light {
+      background-color: #e8d5a8;
+    }
+
+    .square.dark {
+      background-color: #6b8f4a;
+    }
+
+    /* Seçili taş */
+    .square.selected {
+      background-color: rgba(218, 165, 32, 0.55) !important;
+      box-shadow: inset 0 0 16px rgba(218, 165, 32, 0.3);
+    }
+
+    .square.selected .piece {
+      transform: scale(1.15) translateY(-4px);
+      filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.6));
+      transition: all 0.15s ease;
+    }
+
+    .square.last-move {
+      background-image: linear-gradient(rgba(255, 255, 100, 0.32), rgba(255, 255, 100, 0.32)) !important;
+    }
+
+    /* Geçerli hamle vurgusu */
+    .square.valid-move::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.08) 100%);
+      pointer-events: none;
+    }
+
+    /* Yenilebilir taş vurgusu */
+    .square.valid-capture {
+      background-color: rgba(200, 60, 60, 0.45) !important;
+      box-shadow: inset 0 0 12px rgba(200, 60, 60, 0.2);
+    }
+
+    /* Şah çekilme vurgusu */
+    .square.in-check {
+      background-color: rgba(220, 60, 60, 0.6) !important;
+      box-shadow: inset 0 0 24px rgba(220, 60, 60, 0.4);
+    }
+
+    .square:hover {
+      filter: brightness(1.08);
+    }
+
+    .piece {
+      pointer-events: none;
+    }
+
+    .piece.white-piece {
+      color: #f8f3eb;
+      filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.6));
+    }
+
+    .piece.black-piece {
+      color: #1a1815;
+      filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.6));
+      -webkit-text-stroke: 1px rgba(255, 255, 255, 0.15);
+    }
+
+    /* ===== KONTROLLER (MOD SEÇİMİ) ===== */
+    .controls-header {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    #game-mode {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 40px 10px 16px;
+      background: rgba(255, 255, 255, 0.06) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e0d6c8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;
+      background-size: 16px;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      color: #e0d6c8;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    #game-mode option {
+      background: #1c1814;
+      color: #e0d6c8;
+    }
+
+    #ai-difficulty {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 12px;
+      background: rgba(212, 163, 74, 0.15);
+      color: #e0d6c8;
+      border: 1px solid rgba(212, 163, 74, 0.4);
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      margin-left: 8px;
+      transition: all 0.2s;
+      display: none;
+    }
+
+    #ai-difficulty option {
+      background: #1c1814;
+    }
+
+    /* ===== YENİDEN BAŞLAT BUTONU ===== */
+    #restart-btn {
+      padding: 10px 32px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #e0d6c8;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    #restart-btn:hover {
+      background: rgba(212, 163, 74, 0.15);
+      border-color: rgba(212, 163, 74, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* ===== TERFİ MODALI ===== */
+    #promotion-modal {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      border-radius: 8px;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+      animation: fadeIn 0.25s ease;
+    }
+
+    #promotion-modal.show {
+      display: flex;
+    }
+
+    .promotion-box {
+      background: rgba(28, 24, 20, 0.95);
+      border: 2px solid rgba(212, 163, 74, 0.4);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      gap: 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+    }
+
+    .prom-btn {
+      width: 64px;
+      height: 64px;
+      font-size: 42px;
+      line-height: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .prom-btn:hover {
+      background: rgba(212, 163, 74, 0.2);
+      border-color: rgba(212, 163, 74, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .prom-btn.white-piece {
+      color: #f8f3eb;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+    }
+
+    .prom-btn.black-piece {
+      color: #1a1815;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+      -webkit-text-stroke: 1px rgba(255, 255, 255, 0.2);
+    }
+
+    /* ===== MOD SEÇİM ALANI ===== */
+    #mode-select-section {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      margin-bottom: 12px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    #time-color-select-section {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      margin-top: auto;
+      margin-bottom: 20px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .bot-selector-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .bot-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 12px 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .bot-card img {
+      width: 60px;
+      height: 60px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      object-fit: cover;
+      transition: transform 0.2s ease;
+    }
+
+    .bot-card span {
+      font-size: 11px;
+      font-weight: 700;
+      color: #a89f91;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    .bot-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(212, 163, 74, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .bot-card:hover img {
+      transform: scale(1.05);
+    }
+
+    .bot-card.active {
+      background: rgba(212, 163, 74, 0.08);
+      border-color: rgba(212, 163, 74, 0.8);
+      box-shadow: 0 0 12px rgba(212, 163, 74, 0.15);
+    }
+
+    .bot-card.active span {
+      color: #f5deb3;
+    }
+
+    #start-game-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(212, 163, 74, 0.3);
+    }
+
+    .time-selector-row {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .color-selector-row {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 0px;
+    }
+
+    .time-card,
+    .color-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 8px 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .time-card {
+      flex: none;
+      width: 72px;
+    }
+
+    .color-card {
+      flex: none;
+      width: 95px;
+    }
+
+    .time-card span.time-value {
+      font-size: 11px;
+      font-weight: 700;
+      color: #a89f91;
+      text-align: center;
+    }
+
+    .color-card span.color-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #a89f91;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    .color-card span.color-emoji {
+      font-size: 16px;
+      margin-bottom: 2px;
+      transition: transform 0.2s ease;
+    }
+
+    .time-card:hover,
+    .color-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(212, 163, 74, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .color-card:hover span.color-emoji {
+      transform: scale(1.1);
+    }
+
+    .time-card.active,
+    .color-card.active {
+      background: rgba(212, 163, 74, 0.08);
+      border-color: rgba(212, 163, 74, 0.8);
+      box-shadow: 0 0 10px rgba(212, 163, 74, 0.12);
+    }
+
+    .time-card.active span.time-value,
+    .color-card.active span.color-label {
+      color: #f5deb3;
+    }
+
+    /* ===== BOT SOHBET ALANI (Bot Chat) ===== */
+    #bot-chat-section {
+      display: none;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      animation: fadeIn 0.4s ease;
+    }
+
+    #bot-chat-avatar {
+      width: 115px;
+      height: 115px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      object-fit: cover;
+      flex-shrink: 0;
+      box-shadow: 0 4px 20px rgba(212, 163, 74, 0.15);
+    }
+
+    #chat-bubble {
+      position: relative;
+      flex: 1;
+      background: #ffffff;
+      color: #1c1814;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 14.5px;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      box-sizing: border-box;
+    }
+
+    #chat-bubble::before {
+      content: '';
+      position: absolute;
+      left: -12px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: transparent #ffffff transparent transparent;
+    }
+
+    #chat-bubble-text {
+      line-height: 1.4;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* ===== PANEL BUTONLARI ===== */
+    .panel-buttons {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      margin-top: 0;
+    }
+
+    .panel-buttons button {
+      flex: 1;
+      padding: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #e0d6c8;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .panel-buttons button:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(212, 163, 74, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .panel-buttons button:disabled {
+      opacity: 0.35 !important;
+      cursor: not-allowed !important;
+      transform: none !important;
+      border-color: rgba(255, 255, 255, 0.05) !important;
+      background: rgba(255, 255, 255, 0.02) !important;
+    }
+
+    /* ===== OYUN BİTİŞ EKRANI ===== */
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      animation: fadeIn 0.4s ease;
+    }
+
+    #overlay.show {
+      display: flex;
+    }
+
+    #win-message {
+      font-family: 'Cinzel', serif;
+      font-size: 36px;
+      color: #f5deb3;
+      text-align: center;
+      padding: 40px 60px;
+      border-radius: 20px;
+      background: rgba(28, 24, 20, 0.9);
+      border: 1px solid rgba(212, 163, 74, 0.3);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+      animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #win-message button {
+      display: block;
+      margin: 24px auto 0;
+      padding: 10px 36px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: #1c1814;
+      background: linear-gradient(135deg, #d4a34a, #f5deb3);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    #win-message button:hover {
+      transform: scale(1.05);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes scaleIn {
+      from {
+        transform: scale(0.8);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* ===== MOBİL RESPONSIVE TASARIM ===== */
+    @media (max-width: 768px) {
+      body {
+        padding: 8px;
+        align-items: flex-start;
+        overflow-y: auto;
+        touch-action: manipulation;
+      }
+
+      #game-container {
+        padding: 12px 12px;
+        border-radius: 16px;
+      }
+
+      h1 {
+        font-size: 22px;
+        letter-spacing: 3px;
+      }
+
+      #turn-info {
+        font-size: 14px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+      }
+
+      #main-wrapper {
+        flex-direction: column;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .game-area {
+        width: 100%;
+        max-width: 500px;
+      }
+
+      .player-bar {
+        width: 100%;
+        max-width: 500px;
+      }
+
+      #board {
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+        aspect-ratio: 1 / 1;
+        touch-action: manipulation;
+      }
+
+      .square {
+        font-size: clamp(24px, 8.5vw, 46px);
+      }
+
+      .side-panel {
+        max-width: 100%;
+        padding: 12px 16px;
+      }
+
+      .player-name {
+        font-size: 13px;
+      }
+
+      .timer {
+        font-size: 18px;
+        padding: 6px 12px;
+      }
+
+      .captured-area {
+        font-size: 14px;
+        gap: 2px;
+      }
+
+      .captured-count {
+        font-size: 9px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="game-container">
+    <div id="main-wrapper">
+
+      <div class="game-area">
+        <div class="player-bar" id="black-player-bar">
+          <div class="player-profile">
+            <img id="black-bar-avatar" src="images/you.png" alt="Siyah Oyuncu Avatar" />
+            <span id="black-bar-name" class="player-name">Oyuncu 2</span>
+            <div id="captured-white" class="captured-area"></div>
+          </div>
+          <div class="timer" id="black-timer">03:00</div>
+        </div>
+
+        <div style="position: relative;">
+          <div id="board"></div>
+
+          <div id="promotion-modal">
+            <div class="promotion-box" id="promotion-box"></div>
+          </div>
+        </div>
+
+        <div class="player-bar" id="white-player-bar">
+          <div class="player-profile">
+            <img id="white-bar-avatar" src="images/you.png" alt="Beyaz Oyuncu Avatar" />
+            <span id="white-bar-name" class="player-name">Oyuncu 1</span>
+            <div id="captured-black" class="captured-area"></div>
+          </div>
+          <div class="timer" id="white-timer">03:00</div>
+        </div>
+      </div>
+
+      <!-- SAĞ PANEL: GEÇMİŞ VE KONTROLLER -->
+      <div class="side-panel">
+        <!-- MOD SEÇİM ALANI (Oyun Başlamadan Önce Görünür) -->
+        <div id="mode-select-section">
+          <h3
+            style="font-family: 'Cinzel', serif; color: #d4a34a; text-align: center; margin-top: 0; margin-bottom: 16px; font-size: 22px; letter-spacing: 3px; text-transform: uppercase; background: linear-gradient(135deg, #d4a34a, #f5deb3, #d4a34a); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+            ♚ Chess Baronu ♚</h3>
+
+          <!-- Oyun Modu Seçimi -->
+          <div id="mode-selection-container" style="margin-top: 10px;">
+            <div
+              style="font-size: 11px; font-weight: 700; color: #a89f91; margin-bottom: 8px; letter-spacing: 1.5px; text-align: center; text-transform: uppercase;">
+              Oyun Modu</div>
+            <select id="game-mode" onchange="oyunModuDegisti()">
+              <option value="PvE" selected>🤖 Bilgisayara Karşı (PvE)</option>
+              <option value="PvP">👥 İki Oyunculu (PvP)</option>
+            </select>
+          </div>
+
+          <!-- Gizli veri tutucu seçici -->
+          <select id="ai-difficulty" style="display: none !important;">
+            <option value="3" selected>Satibatuva</option>
+            <option value="4">17ah17met</option>
+            <option value="5">Trivala</option>
+            <option value="6">Yeşil Elma</option>
+          </select>
+
+          <!-- İnteraktif Karakter Seçim Paneli -->
+          <div id="bot-selection-container" style="display: none; margin-top: 10px; animation: fadeIn 0.3s ease;">
+            <div
+              style="font-size: 11px; font-weight: 700; color: #a89f91; margin-bottom: 8px; letter-spacing: 1.5px; text-align: center;">
+              RAKİBİNİ SEÇ</div>
+            <div class="bot-selector-row">
+              <div class="bot-card active" onclick="secilenBotuGuncelle('3')">
+                <img src="images/bot1.png" alt="Satibatuva" />
+                <span>Satibatuva</span>
+              </div>
+              <div class="bot-card" onclick="secilenBotuGuncelle('4')">
+                <img src="images/bot2.png" alt="17ah17met" />
+                <span>17ah17met</span>
+              </div>
+              <div class="bot-card" onclick="secilenBotuGuncelle('5')">
+                <img src="images/bot3.png" alt="Trivala" />
+                <span>Trivala</span>
+              </div>
+              <div class="bot-card" onclick="secilenBotuGuncelle('6')">
+                <img src="images/bot4.png" alt="Yeşil Elma" />
+                <span>Yeşil Elma</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SÜRE VE RENK SEÇİM ALANI (Oyna Butonunun Hemen Üstünde Bitişik Görünür) -->
+        <div id="time-color-select-section">
+          <!-- Süre Seçim Paneli -->
+          <div id="time-selection-container" style="margin-top: 10px; animation: fadeIn 0.3s ease;">
+            <div
+              style="font-size: 11px; font-weight: 700; color: #a89f91; margin-bottom: 8px; letter-spacing: 1.5px; text-align: center;">
+              TEMPO</div>
+            <div class="time-selector-row">
+              <div class="time-card active" data-time="180" onclick="secilenSureyiGuncelle(180, this)">
+                <span class="time-value">3+0</span>
+              </div>
+              <div class="time-card" data-time="300" onclick="secilenSureyiGuncelle(300, this)">
+                <span class="time-value">5+0</span>
+              </div>
+              <div class="time-card" data-time="600" onclick="secilenSureyiGuncelle(600, this)">
+                <span class="time-value">10+0</span>
+              </div>
+              <div class="time-card" data-time="900" onclick="secilenSureyiGuncelle(900, this)">
+                <span class="time-value">15+0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Renk Seçim Paneli -->
+          <div id="color-selection-container" style="margin-top: 10px; animation: fadeIn 0.3s ease;">
+            <div
+              style="font-size: 11px; font-weight: 700; color: #a89f91; margin-bottom: 8px; letter-spacing: 1.5px; text-align: center;">
+              RENK</div>
+            <div class="color-selector-row">
+              <div class="color-card active" data-color="beyaz" onclick="secilenRengiGuncelle('beyaz', this)">
+                <span class="color-emoji">⚪</span>
+                <span class="color-label">BEYAZ</span>
+              </div>
+              <div class="color-card" data-color="siyah" onclick="secilenRengiGuncelle('siyah', this)">
+                <span class="color-emoji">⚫</span>
+                <span class="color-label">SİYAH</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOT SOHBET ALANI (Oyun Başladıktan Sonra PvE ise Görünür) -->
+        <div id="bot-chat-section" style="display: none;">
+          <img id="bot-chat-avatar" src="images/bot1.png" alt="Bot Büyük Avatar" />
+          <div id="chat-bubble">
+            <div id="chat-bubble-text">Merhaba! Meydan okumaya hazır mısın?</div>
+          </div>
+        </div>
+
+        <!-- SIRA BİLGİSİ (Oyun Başlayınca Görünür) -->
+        <div id="turn-info" class="white-turn" style="display: none;">⚪ Beyazın Sırası</div>
+
+        <h2 id="history-title"
+          style="display: none; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; color: #d4a34a; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 10px; font-family: 'Cinzel', serif; margin-top: auto;">
+          Hamle Geçmişi</h2>
+
+        <div id="move-history" style="display: none;">
+          <div id="history-list"></div>
+        </div>
+
+        <div class="panel-buttons">
+          <button id="undo-btn" onclick="hamleGeriAl()" style="display: none;">Geri Al</button>
+          <button id="resign-btn" onclick="oyunuTerkEt()" style="display: none;">Terk Et</button>
+          <button id="prev-btn" onclick="analizGeriGit()" style="display: none;">&lt;</button>
+          <button id="next-btn" onclick="analizIleriGit()" style="display: none;">&gt;</button>
+          <button id="restart-game-btn" onclick="oyunuYenidenBaslat()"
+            style="display: none; background: linear-gradient(135deg, #d4a34a, #f5deb3); color: #1c1814; border: none; flex: 2;">Tekrar
+            Oyna</button>
+          <button id="start-game-btn" onclick="oyunKurulumunuKapatVeBaslat()"
+            style="flex: none; width: 100%; padding: 12px; background: linear-gradient(135deg, #d4a34a, #f5deb3); color: #1c1814; font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">OYNA</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+
+  <div id="overlay">
+    <div id="win-message">
+      <div id="win-text"></div>
+      <button onclick="analizModunaGec()">Analiz</button>
+    </div>
+  </div>
+
+  <script src="acilislar.js"></script>
+  <script src="bot_sentences.js"></script>
+  <script>
+    // ====================================================================
+    //  1. SABİTLER VE OYUN DURUMU (Game State)
+    // ====================================================================
+    const PIYON = 'piyon', KALE = 'kale', AT = 'at', FIL = 'fil', VEZIR = 'vezir', SAH = 'sah';
+    const BEYAZ = 'beyaz', SIYAH = 'siyah';
+
+    const TAS_SEMBOLLERI = {
+      beyaz: { sah: '♚', vezir: '♛', kale: '♜', fil: '♝', at: '♞', piyon: '♟' },
+      siyah: { sah: '♚', vezir: '♛', kale: '♜', fil: '♝', at: '♞', piyon: '♟' }
+    };
+
+    let tahta = [];
+    let aktifSira = BEYAZ;
+    let seciliKare = null;
+    let gecerliHamleler = [];
+    let oyunBitti = false;
+    let yenilenTaslar = { beyaz: [], siyah: [] };
+
+    // Yeni Eklenen Oyun Durumları:
+    let oyunModu = 'PvE';
+    let aiDusununuyor = false;
+    let terfiBekleniyor = false;
+    let enPassantHedefi = null; // { satir, sutun }
+    let sonHamle = null;        // { eskiS, eskiX, yeniS, yeniX }
+    let animasyonKuyrugu = null;// { eskiS, eskiX, yeniS, yeniX }
+    let hamleGecmisi = [];      // [{ beyaz: 'e4', siyah: 'e5' }, ...]
+    let oyunKuruldu = false;
+    let secilenOyunSuresi = 180; // Saniye bazında oyun süresi (Varsayılan 3 dk = 180 saniye)
+    let oyuncuRengi = BEYAZ;       // Oyuncunun seçtiği renk (Varsayılan Beyaz)
+    let bilgisayarRengi = SIYAH;   // Yapay zekanın rengi (Varsayılan Siyah)
+    let durumGecmisi = [];      // Geri alma durum yığını
+    let piyonsuzYemesizHamleSayici = 0; // 40 hamle beraberlik kuralı sayacı
+    let analizModuAktif = false;
+    let analizDurumlari = [];
+    let analizIndeksi = -1;
+    let izlenenGecmisIndex = -1; // İzlenen geçmiş hamle indeksi (-1 ise canlı oyun)
+    let canlıOyunDurumu = null;  // Geçmiş izlenirken canlı oyun durumunu tutan obje
+
+    // Katil Hamle Hafızası (Killer Heuristic)
+    const killerMoves = Array(100).fill().map(() => [null, null]);
+
+    // ====================================================================
+    //  8. SES EFEKTLERİ (Web Audio API)
+    // ====================================================================
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function oyunSesCikar(tip) {
+      if (!audioCtx) initAudio();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (tip === 'hamle') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (tip === 'yeme') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+        gainNode.gain.setValueAtTime(0.4, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (tip === 'sah') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.setValueAtTime(800, now + 0.1);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (tip === 'bitis') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.setValueAtTime(400, now + 0.1);
+        osc.frequency.setValueAtTime(300, now + 0.2);
+        osc.frequency.setValueAtTime(200, now + 0.3);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.linearRampToValueAtTime(0.01, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.6);
+      }
+    }
+
+    let kalanSure = { beyaz: 180, siyah: 180 }; // Saniye cinsinden
+    let timerInterval = null;
+    let oyunBasladi = false;    // İlk hamle yapıldığında true olur
+    let sonrakiKonusmaYuzdeYuz = false; // Şah, terfi, oyun başı, geri almadan sonraki konuşmanın %100 olmasını kontrol eder
+    let oncekiSkor = 0;
+    let botunSonDurumu = 'hamleYapti';
+    let pozisyonGecmisi = [];
+
+    // DOM Referansları
+    const tahtaDiv = document.getElementById('board');
+    const siraInfo = document.getElementById('turn-info');
+    const overlay = document.getElementById('overlay');
+    const winText = document.getElementById('win-text');
+    const promModal = document.getElementById('promotion-modal');
+    const promBox = document.getElementById('promotion-box');
+
+    function terfiEkraniGoster(renk) {
+      return new Promise((resolve) => {
+        terfiBekleniyor = true;
+        promBox.innerHTML = '';
+        const secenekler = [VEZIR, KALE, FIL, AT];
+
+        secenekler.forEach(tip => {
+          const btn = document.createElement('div');
+          btn.className = `prom-btn ${renk === BEYAZ ? 'white-piece' : 'black-piece'}`;
+          btn.textContent = TAS_SEMBOLLERI[renk][tip];
+          btn.onclick = () => {
+            promModal.classList.remove('show');
+            terfiBekleniyor = false;
+            resolve(tip);
+          };
+          promBox.appendChild(btn);
+        });
+
+        promModal.classList.add('show');
+      });
+    }
+
+    // ====================================================================
+    //  2. OYUN BAŞLATMA VE ARAYÜZ (UI Updates)
+    // ====================================================================
+
+    const botProfilleri = {
+      '3': { ad: "Satibatuva", resim: "images/bot1.png" },
+      '4': { ad: "17ah17met", resim: "images/bot2.png" },
+      '5': { ad: "Trivala", resim: "images/bot3.png" },
+      '6': { ad: "Yeşil Elma", resim: "images/bot4.png" }
+    };
+
+    function botKonus(mesajTipi) {
+      const mod = document.getElementById('game-mode') ? document.getElementById('game-mode').value : 'PvP';
+      if (mod !== 'PvE') return;
+
+      const zorluk = document.getElementById('ai-difficulty') ? document.getElementById('ai-difficulty').value : '3';
+      const bubble = document.getElementById('chat-bubble-text');
+      if (!bubble) return;
+
+      // Özel olaylar tetiklendiğinde sonraki konuşmayı %100 garantili yap
+      if (['baslangic', 'sahCekti', 'sahYedi', 'terfi', 'geriAlindi', 'avantajYakaladi', 'avantajKaybetti'].includes(mesajTipi)) {
+        sonrakiKonusmaYuzdeYuz = true;
+      }
+
+      // Düşünürken ve hamle yaptıktan sonra konuşma olasılığı filtresi
+      if (['dusunuyor', 'hamleYapti', 'kazaniyor', 'kaybediyor'].includes(mesajTipi)) {
+        if (sonrakiKonusmaYuzdeYuz) {
+          // Özel bir olaydan hemen sonraki ilk konuşma ise filtreyi pas geç, %100 konuştur ve sıfırla
+          sonrakiKonusmaYuzdeYuz = false;
+        } else {
+          // Normal zamanlarda %40 olasılık uygula
+          if (Math.random() > 0.4) return;
+        }
+      }
+
+      // Harici botCumleleri dosyasından ilgili botun konuşmalarını al
+      const botTepkileri = botCumleleri[zorluk] || botCumleleri['3'];
+      let secenekler = botTepkileri[mesajTipi] || [];
+
+      // Kazanıyor veya kaybediyor durumlarında, normal hamle ve düşünüyor diyaloglarını da havuza ekle
+      if (mesajTipi === 'kazaniyor') {
+        if (botTepkileri['hamleYapti']) secenekler = [...secenekler, ...botTepkileri['hamleYapti']];
+        if (botTepkileri['dusunuyor']) secenekler = [...secenekler, ...botTepkileri['dusunuyor']];
+      } else if (mesajTipi === 'kaybediyor') {
+        if (botTepkileri['hamleYapti']) secenekler = [...secenekler, ...botTepkileri['hamleYapti']];
+        if (botTepkileri['dusunuyor']) secenekler = [...secenekler, ...botTepkileri['dusunuyor']];
+      }
+
+      if (secenekler && secenekler.length > 0) {
+        const rastgele = secenekler[Math.floor(Math.random() * secenekler.length)];
+        bubble.textContent = rastgele;
+      }
+    }
+
+    function botProfilGuncelle() {
+      const mod = document.getElementById('game-mode') ? document.getElementById('game-mode').value : 'PvP';
+      const zorluk = document.getElementById('ai-difficulty') ? document.getElementById('ai-difficulty').value : '3';
+      const chatSection = document.getElementById('bot-chat-section');
+      const blackAvatar = document.getElementById('black-bar-avatar');
+      const blackName = document.getElementById('black-bar-name');
+      const whiteName = document.getElementById('white-bar-name');
+      const sidePanel = document.querySelector('.side-panel');
+
+      if (sidePanel) {
+        sidePanel.classList.toggle('pve-active', oyunKuruldu && mod === 'PvE');
+      }
+
+      if (mod === 'PvE') {
+        const bot = botProfilleri[zorluk] || botProfilleri['3'];
+        if (blackAvatar) {
+          blackAvatar.src = bot.resim;
+        }
+        if (blackName) blackName.textContent = bot.ad;
+        if (whiteName) whiteName.textContent = "Sen";
+
+        if (chatSection) {
+          document.getElementById('bot-chat-avatar').src = bot.resim;
+          chatSection.style.display = oyunKuruldu ? 'flex' : 'none';
+        }
+      } else {
+        if (blackAvatar) {
+          blackAvatar.src = "images/you.png";
+        }
+        if (blackName) blackName.textContent = `Oyuncu 2`;
+        if (whiteName) whiteName.textContent = `Oyuncu 1`;
+        if (chatSection) chatSection.style.display = 'none';
+      }
+    }
+
+    function oyunuTerkEt() {
+      oyunKuruldu = false;
+
+      const modeSection = document.getElementById('mode-select-section');
+      if (modeSection) modeSection.style.display = 'flex';
+      const timeColorSection = document.getElementById('time-color-select-section');
+      if (timeColorSection) timeColorSection.style.display = 'flex';
+
+      const chatSection = document.getElementById('bot-chat-section');
+      if (chatSection) chatSection.style.display = 'none';
+
+      // Butonları güncelle
+      document.getElementById('undo-btn').style.display = 'none';
+      document.getElementById('resign-btn').style.display = 'none';
+      document.getElementById('prev-btn').style.display = 'none';
+      document.getElementById('next-btn').style.display = 'none';
+      document.getElementById('restart-game-btn').style.display = 'none';
+      document.getElementById('start-game-btn').style.display = 'block';
+
+      const histTitle = document.getElementById('history-title');
+      const histList = document.getElementById('move-history');
+      if (histTitle) histTitle.style.display = 'none';
+      if (histList) histList.style.display = 'none';
+
+      oyunuBaslat();
+    }
+
+    function suAnkiDurumuKopyala() {
+      return {
+        tahta: JSON.parse(JSON.stringify(tahta)),
+        aktifSira: aktifSira,
+        yenilenTaslar: JSON.parse(JSON.stringify(yenilenTaslar)),
+        enPassantHedefi: enPassantHedefi ? { ...enPassantHedefi } : null,
+        sonHamle: sonHamle ? { ...sonHamle } : null,
+        hamleGecmisi: JSON.parse(JSON.stringify(hamleGecmisi)),
+        kalanSure: { ...kalanSure },
+        oyunBasladi: oyunBasladi,
+        oyunBitti: oyunBitti
+      };
+    }
+
+    function analizModunaGec() {
+      overlay.classList.remove('show');
+      analizModuAktif = true;
+
+      // analizDurumlari, tüm geçmiş durumlar ve şu anki final durumunun birleşimidir
+      analizDurumlari = [...durumGecmisi, suAnkiDurumuKopyala()];
+      analizIndeksi = analizDurumlari.length - 1;
+
+      // Butonları güncelle
+      document.getElementById('undo-btn').style.display = 'none';
+      document.getElementById('resign-btn').style.display = 'none';
+      document.getElementById('prev-btn').style.display = 'block';
+      document.getElementById('next-btn').style.display = 'block';
+      document.getElementById('restart-game-btn').style.display = 'block';
+
+      analizButonlariniGuncelle();
+    }
+
+    function analizButonlariniGuncelle() {
+      const prevBtn = document.getElementById('prev-btn');
+      const nextBtn = document.getElementById('next-btn');
+      if (prevBtn && nextBtn) {
+        prevBtn.disabled = (analizIndeksi <= 0);
+        nextBtn.disabled = (analizIndeksi >= analizDurumlari.length - 1);
+      }
+    }
+
+    function analizGeriGit() {
+      if (!analizModuAktif || analizIndeksi <= 0) return;
+      analizIndeksi--;
+      durumGeriYukle(analizDurumlari[analizIndeksi]);
+      analizButonlariniGuncelle();
+    }
+
+    function analizIleriGit() {
+      if (!analizModuAktif || analizIndeksi >= analizDurumlari.length - 1) return;
+      analizIndeksi++;
+      durumGeriYukle(analizDurumlari[analizIndeksi]);
+      analizButonlariniGuncelle();
+    }
+
+    function oyunuYenidenBaslat() {
+      analizModuAktif = false;
+      oyunuTerkEt();
+    }
+
+    function durumGeriYukle(durum) {
+      tahta = durum.tahta;
+      aktifSira = durum.aktifSira;
+      yenilenTaslar = durum.yenilenTaslar;
+      enPassantHedefi = durum.enPassantHedefi;
+      sonHamle = durum.sonHamle;
+      hamleGecmisi = durum.hamleGecmisi;
+      kalanSure = durum.kalanSure;
+      oyunBasladi = durum.oyunBasladi;
+      oyunBitti = durum.oyunBitti;
+      pozisyonGecmisi = durum.pozisyonGecmisi ? [...durum.pozisyonGecmisi] : [];
+      piyonsuzYemesizHamleSayici = durum.piyonsuzYemesizHamleSayici !== undefined ? durum.piyonsuzYemesizHamleSayici : 0;
+
+      // UI Güncellemeleri
+      tahtayiCiz();
+      gecmisiGuncelle();
+      saatleriGuncelle();
+
+      const inCheck = sahTehditteMi(aktifSira, tahta);
+      siraGuncelle(inCheck);
+
+      // Seçim ve geçici durum temizliği
+      seciliKare = null;
+      gecerliHamleler = [];
+      aiDusununuyor = false;
+      terfiBekleniyor = false;
+      overlay.classList.remove('show');
+    }
+
+    function hamleGeriAl() {
+      if (durumGecmisi.length === 0 || aiDusununuyor) return;
+
+      oyunSesCikar('hamle'); // Geri alma sesi olarak hamle sesini çal
+
+      if (oyunModu === 'PvE') {
+        if (durumGecmisi.length >= 2) {
+          // Hem botun hem oyuncunun hamlesini geri al (2 adım geri git)
+          durumGecmisi.pop(); // Son bot hamlesini at
+          const oncekiDurum = durumGecmisi.pop(); // Oyuncunun hamlesinden önceki durumu al
+          durumGeriYukle(oncekiDurum);
+        } else {
+          // Sadece 1 hamle varsa tek adım geri git
+          const tekDurum = durumGecmisi.pop();
+          durumGeriYukle(tekDurum);
+        }
+      } else {
+        // PvP modunda tek tek geri al
+        const oncekiDurum = durumGecmisi.pop();
+        durumGeriYukle(oncekiDurum);
+      }
+
+      botKonus('geriAlindi');
+    }
+
+    function oyunModuDegisti() {
+      const mode = document.getElementById('game-mode').value;
+      const botContainer = document.getElementById('bot-selection-container');
+      if (botContainer) {
+        botContainer.style.display = (mode === 'PvE') ? 'block' : 'none';
+      }
+      botProfilGuncelle();
+    }
+
+    function secilenSureyiGuncelle(saniye, element) {
+      secilenOyunSuresi = saniye;
+      const cards = document.querySelectorAll('.time-card');
+      cards.forEach(card => card.classList.remove('active'));
+      element.classList.add('active');
+
+      // Maç başlamadan önce timer'larda seçilen değeri anında göster
+      kalanSure = { beyaz: saniye, siyah: saniye };
+      saatleriGuncelle();
+    }
+
+    function secilenRengiGuncelle(renk, element) {
+      oyuncuRengi = renk;
+      bilgisayarRengi = (oyuncuRengi === BEYAZ) ? SIYAH : BEYAZ;
+      const cards = document.querySelectorAll('.color-card');
+      cards.forEach(card => card.classList.remove('active'));
+      element.classList.add('active');
+      botProfilGuncelle();
+      tahtayiCiz();
+    }
+
+    function secilenBotuGuncelle(zorluk) {
+      const select = document.getElementById('ai-difficulty');
+      if (select) {
+        select.value = zorluk;
+      }
+      const cards = document.querySelectorAll('.bot-card');
+      cards.forEach(card => {
+        card.classList.remove('active');
+      });
+      const cardIndex = parseInt(zorluk) - 3;
+      if (cards[cardIndex]) {
+        cards[cardIndex].classList.add('active');
+      }
+      botProfilGuncelle();
+    }
+
+    function oyunKurulumunuKapatVeBaslat() {
+      oyunKuruldu = true;
+
+      const modeSection = document.getElementById('mode-select-section');
+      if (modeSection) modeSection.style.display = 'none';
+      const timeColorSection = document.getElementById('time-color-select-section');
+      if (timeColorSection) timeColorSection.style.display = 'none';
+
+      // Butonları güncelle
+      document.getElementById('undo-btn').style.display = 'block';
+      document.getElementById('resign-btn').style.display = 'block';
+      document.getElementById('prev-btn').style.display = 'none';
+      document.getElementById('next-btn').style.display = 'none';
+      document.getElementById('restart-game-btn').style.display = 'none';
+      document.getElementById('start-game-btn').style.display = 'none';
+
+      const histTitle = document.getElementById('history-title');
+      const histList = document.getElementById('move-history');
+      if (histTitle) histTitle.style.display = 'block';
+      if (histList) histList.style.display = 'block';
+
+      oyunuBaslat();
+    }
+
+    function oyunuBaslat() {
+      izlenenGecmisIndex = -1;
+      canlıOyunDurumu = null;
+      oyunModuDegisti();
+      oyunBitti = false;
+      oncekiSkor = 0;
+      botunSonDurumu = 'hamleYapti';
+      pozisyonGecmisi = [];
+      aktifSira = BEYAZ;
+      oyunModu = document.getElementById('game-mode') ? document.getElementById('game-mode').value : 'PvP';
+      aiDusununuyor = false;
+      terfiBekleniyor = false;
+      seciliKare = null;
+      gecerliHamleler = [];
+      yenilenTaslar = { beyaz: [], siyah: [] };
+      enPassantHedefi = null;
+      sonHamle = null;
+      animasyonKuyrugu = null;
+      hamleGecmisi = [];
+      durumGecmisi = [];
+      piyonsuzYemesizHamleSayici = 0;
+
+      overlay.classList.remove('show');
+
+      // Tahtayı 0'la
+      tahta = Array.from({ length: 8 }, () => Array(8).fill(null));
+
+      const siyahSira = [KALE, AT, FIL, VEZIR, SAH, FIL, AT, KALE];
+      for (let s = 0; s < 8; s++) {
+        tahta[0][s] = { tip: siyahSira[s], renk: SIYAH, hareketEtti: false };
+        tahta[1][s] = { tip: PIYON, renk: SIYAH, hareketEtti: false };
+      }
+
+      const beyazSira = [KALE, AT, FIL, VEZIR, SAH, FIL, AT, KALE];
+      for (let s = 0; s < 8; s++) {
+        tahta[7][s] = { tip: beyazSira[s], renk: BEYAZ, hareketEtti: false };
+        tahta[6][s] = { tip: PIYON, renk: BEYAZ, hareketEtti: false };
+      }
+
+      // Saatleri sıfırla
+      kalanSure = { beyaz: secilenOyunSuresi, siyah: secilenOyunSuresi };
+      oyunBasladi = false;
+      if (timerInterval) clearInterval(timerInterval);
+
+      saatleriGuncelle();
+      gecmisiGuncelle();
+      tahtayiCiz();
+      pozisyonGecmisi = [serializeTahta(tahta, aktifSira)];
+
+      if (oyunKuruldu) {
+        siraGuncelle(false);
+        botKonus('baslangic');
+
+        if (oyunModu === 'PvE' && aktifSira === bilgisayarRengi) {
+          aiDusununuyor = true;
+          setTimeout(bilgisayarHamleYap, 100);
+        }
+      } else {
+        siraInfo.style.display = 'none';
+      }
+    }
+
+    function grupVeSiralaYenilenTaslar(taslarDizisi, renk) {
+      const sayilar = {};
+      for (let t of taslarDizisi) {
+        sayilar[t] = (sayilar[t] || 0) + 1;
+      }
+
+      const TAS_DEGERLERI = { piyon: 1, at: 3, fil: 3, kale: 5, vezir: 9 };
+
+      const siraliTipler = Object.keys(sayilar).sort((a, b) => {
+        const diff = TAS_DEGERLERI[a] - TAS_DEGERLERI[b];
+        if (diff !== 0) return diff;
+        return a.localeCompare(b);
+      });
+
+      const sonuclar = [];
+      for (let tip of siraliTipler) {
+        const adet = sayilar[tip];
+        const sembol = TAS_SEMBOLLERI[renk][tip];
+        if (adet > 1) {
+          sonuclar.push(`${sembol}<span class="captured-count">x${adet}</span>`);
+        } else {
+          sonuclar.push(sembol);
+        }
+      }
+      return sonuclar.join(' ');
+    }
+
+    function tahtayiCiz() {
+      tahtaDiv.innerHTML = '';
+      const inCheck = sahTehditteMi(aktifSira, tahta);
+
+      const rowOrder = oyuncuRengi === SIYAH ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+      const colOrder = oyuncuRengi === SIYAH ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+
+      for (let rIdx = 0; rIdx < 8; rIdx++) {
+        const satir = rowOrder[rIdx];
+        for (let cIdx = 0; cIdx < 8; cIdx++) {
+          const sutun = colOrder[cIdx];
+          const kareDiv = document.createElement('div');
+          kareDiv.className = `square ${(satir + sutun) % 2 === 0 ? 'light' : 'dark'}`;
+          kareDiv.id = `kare-${satir}-${sutun}`;
+
+          if (seciliKare && seciliKare.satir === satir && seciliKare.sutun === sutun) {
+            kareDiv.classList.add('selected');
+          }
+
+          if (sonHamle && ((satir === sonHamle.eskiS && sutun === sonHamle.eskiX) || (satir === sonHamle.yeniS && sutun === sonHamle.yeniX))) {
+            kareDiv.classList.add('last-move');
+          }
+
+          const hamle = gecerliHamleler.find(h => h.satir === satir && h.sutun === sutun);
+          if (hamle) {
+            const hedefTas = tahta[satir][sutun];
+            const seciliTas = seciliKare ? tahta[seciliKare.satir][seciliKare.sutun] : null;
+            const isPawnEnPassant = seciliTas && seciliTas.tip === PIYON && enPassantHedefi && satir === enPassantHedefi.satir && sutun === enPassantHedefi.sutun;
+            if ((hedefTas && hedefTas.renk !== aktifSira) || isPawnEnPassant) {
+              kareDiv.classList.add('valid-capture');
+            } else {
+              kareDiv.classList.add('valid-move');
+            }
+          }
+
+          const tas = tahta[satir][sutun];
+          if (tas) {
+            const tasSpan = document.createElement('span');
+            tasSpan.className = `piece ${tas.renk === BEYAZ ? 'white-piece' : 'black-piece'}`;
+            tasSpan.textContent = TAS_SEMBOLLERI[tas.renk][tas.tip];
+            kareDiv.appendChild(tasSpan);
+
+            if (tas.tip === SAH && tas.renk === aktifSira && inCheck) kareDiv.classList.add('in-check');
+          }
+
+          kareDiv.addEventListener('click', () => kareSecildi(satir, sutun));
+          tahtaDiv.appendChild(kareDiv);
+        }
+      }
+
+      if (oyuncuRengi === BEYAZ) {
+        document.getElementById('captured-white').innerHTML = grupVeSiralaYenilenTaslar(yenilenTaslar.beyaz, BEYAZ);
+        document.getElementById('captured-black').innerHTML = grupVeSiralaYenilenTaslar(yenilenTaslar.siyah, SIYAH);
+      } else {
+        document.getElementById('captured-white').innerHTML = grupVeSiralaYenilenTaslar(yenilenTaslar.siyah, SIYAH);
+        document.getElementById('captured-black').innerHTML = grupVeSiralaYenilenTaslar(yenilenTaslar.beyaz, BEYAZ);
+      }
+
+      // FLIP Animasyonu
+      if (animasyonKuyrugu) {
+        const a = animasyonKuyrugu;
+        const yeniKare = document.getElementById(`kare-${a.yeniS}-${a.yeniX}`);
+        if (yeniKare && yeniKare.firstChild) {
+          const tasDOM = yeniKare.querySelector('.piece');
+          if (tasDOM) {
+            const scale = oyuncuRengi === SIYAH ? -1 : 1;
+            const dx = (a.eskiX - a.yeniX) * 100 * scale;
+            const dy = (a.eskiS - a.yeniS) * 100 * scale;
+
+            tasDOM.style.transition = 'none';
+            tasDOM.style.transform = `translate(${dx}%, ${dy}%)`;
+
+            // Reflow
+            tasDOM.getBoundingClientRect();
+
+            tasDOM.style.transition = 'transform 0.15s ease-out';
+            tasDOM.style.transform = 'translate(0, 0)';
+          }
+        }
+        animasyonKuyrugu = null;
+      }
+    }
+
+    function siraGuncelle(inCheck = false) {
+      siraInfo.style.display = 'block';
+      if (izlenenGecmisIndex !== -1) {
+        siraInfo.className = 'white-turn';
+        siraInfo.classList.remove('in-check-text');
+        siraInfo.textContent = '👀 Geçmiş Hamle İzleniyor...';
+        return;
+      }
+      if (analizModuAktif) {
+        siraInfo.className = 'white-turn';
+        siraInfo.classList.remove('in-check-text');
+        siraInfo.textContent = '🏁 Maç Bitti!';
+        return;
+      }
+      let text = aktifSira === BEYAZ ? '⚪ Beyazın Sırası' : '⚫ Siyahın Sırası';
+      siraInfo.className = aktifSira === BEYAZ ? 'white-turn' : 'black-turn';
+
+      if (inCheck) {
+        siraInfo.classList.add('in-check-text');
+      } else {
+        siraInfo.classList.remove('in-check-text');
+      }
+      siraInfo.textContent = text;
+    }
+
+    // ====================================================================
+    //  3. SATRANÇ SAATİ (Timer) MANTIĞI
+    // ====================================================================
+
+    function saniyeFormatla(saniye) {
+      const dk = Math.floor(saniye / 60);
+      const sn = saniye % 60;
+      return `${dk.toString().padStart(2, '0')}:${sn.toString().padStart(2, '0')}`;
+    }
+
+    function saatleriGuncelle() {
+      const dBeyaz = document.getElementById('white-timer'); // Alt saat (Oyuncu)
+      const dSiyah = document.getElementById('black-timer'); // Üst saat (Bilgisayar/Rakip)
+
+      const sureKaynagi = (izlenenGecmisIndex !== -1 && canlıOyunDurumu) ? canlıOyunDurumu.kalanSure : kalanSure;
+      dBeyaz.textContent = saniyeFormatla(sureKaynagi[oyuncuRengi]);
+      dSiyah.textContent = saniyeFormatla(sureKaynagi[bilgisayarRengi]);
+
+      const aktifSiraKaynagi = (izlenenGecmisIndex !== -1 && canlıOyunDurumu) ? canlıOyunDurumu.aktifSira : aktifSira;
+
+      // 15 saniyenin altına inince kırmızımsı uyarı rengi ver
+      if (sureKaynagi[oyuncuRengi] < 15) {
+        dBeyaz.classList.add('warning');
+      } else {
+        dBeyaz.classList.remove('warning');
+      }
+
+      if (sureKaynagi[bilgisayarRengi] < 15) {
+        dSiyah.classList.add('warning');
+      } else {
+        dSiyah.classList.remove('warning');
+      }
+
+      if (!oyunBitti) {
+        if (aktifSiraKaynagi === oyuncuRengi) {
+          dBeyaz.classList.add('active'); dSiyah.classList.remove('active');
+        } else {
+          dSiyah.classList.add('active'); dBeyaz.classList.remove('active');
+        }
+      } else {
+        dBeyaz.classList.remove('active'); dSiyah.classList.remove('active');
+      }
+    }
+
+    function baslatZamanlayici() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (!oyunBasladi || oyunBitti) return;
+
+        if (izlenenGecmisIndex !== -1 && canlıOyunDurumu) {
+          canlıOyunDurumu.kalanSure[canlıOyunDurumu.aktifSira]--;
+          saatleriGuncelle();
+
+          if (canlıOyunDurumu.kalanSure[canlıOyunDurumu.aktifSira] <= 0) {
+            clearInterval(timerInterval);
+            oyunSesCikar('bitis');
+            // Oyun bitirilecek, ancak önce canlı oyun durumunu geri yükleyip bitirmeliyiz!
+            const sira = canlıOyunDurumu.aktifSira;
+            tahta = canlıOyunDurumu.tahta;
+            aktifSira = canlıOyunDurumu.aktifSira;
+            yenilenTaslar = canlıOyunDurumu.yenilenTaslar;
+            enPassantHedefi = canlıOyunDurumu.enPassantHedefi;
+            sonHamle = canlıOyunDurumu.sonHamle;
+            kalanSure = canlıOyunDurumu.kalanSure;
+            oyunBitti = canlıOyunDurumu.oyunBitti;
+            canlıOyunDurumu = null;
+            izlenenGecmisIndex = -1;
+
+            oyunBitir(sira === BEYAZ ? SIYAH : BEYAZ, "Süre Bitti!");
+          }
+        } else {
+          kalanSure[aktifSira]--;
+          saatleriGuncelle();
+
+          if (kalanSure[aktifSira] <= 0) {
+            clearInterval(timerInterval);
+            oyunSesCikar('bitis');
+            oyunBitir(aktifSira === BEYAZ ? SIYAH : BEYAZ, "Süre Bitti!");
+          }
+        }
+      }, 1000);
+    }
+
+    // ====================================================================
+    //  4. HAMLE GEÇMİŞİ NOTASYONU
+    // ====================================================================
+
+    function koordinataCevir(satir, sutun) {
+      const harfler = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+      return harfler[sutun] + (8 - satir);
+    }
+
+    // Aday bir hamlenin oyun içindeki özel notasyon karşılığını döndürür.
+    function getHamleNotasyonu(eskiS, eskiX, yeniS, yeniX, t = tahta) {
+      const tas = t[eskiS][eskiX];
+      if (!tas) return '';
+      const hedef = t[yeniS][yeniX];
+
+      let isEnPassant = false;
+      if (tas.tip === PIYON && enPassantHedefi && yeniS === enPassantHedefi.satir && yeniX === enPassantHedefi.sutun) {
+        isEnPassant = true;
+      }
+
+      const yemeIsareti = (hedef || isEnPassant) ? 'x' : '-';
+      const eskiKonum = koordinataCevir(eskiS, eskiX);
+      const yeniKonum = koordinataCevir(yeniS, yeniX);
+
+      if (tas.tip === SAH && Math.abs(yeniX - eskiX) === 2) {
+        return yeniX === 6 ? 'O-O' : 'O-O-O';
+      }
+
+      if (tas.tip === PIYON && yemeIsareti === 'x') {
+        return `${eskiKonum[0]}x${yeniKonum}`;
+      }
+
+      return `${tas.tip === PIYON ? '' : TAS_SEMBOLLERI[tas.renk][tas.tip]}${eskiKonum}${yemeIsareti}${yeniKonum}`;
+    }
+
+    function gecmisiGuncelle() {
+      let kaynakHamleGecmisi = hamleGecmisi;
+      let aktifSiraNo = -1;
+
+      if (analizModuAktif && analizDurumlari.length > 0) {
+        // Analiz modundaysak, her zaman son/tam durumdaki hamle geçmişini gösterelim
+        const sonDurum = analizDurumlari[analizDurumlari.length - 1];
+        kaynakHamleGecmisi = sonDurum.hamleGecmisi;
+        aktifSiraNo = analizIndeksi;
+      } else if (izlenenGecmisIndex !== -1 && canlıOyunDurumu) {
+        // Canlı oyunda geçmiş hamle izliyorsak, tam hamle geçmişini gösterelim
+        kaynakHamleGecmisi = canlıOyunDurumu.hamleGecmisi;
+        aktifSiraNo = izlenenGecmisIndex;
+      }
+
+      const list = document.getElementById('history-list');
+      list.innerHTML = '';
+      kaynakHamleGecmisi.forEach((h, i) => {
+        const row = document.createElement('div');
+        row.className = 'history-row';
+
+        const stepSpan = document.createElement('span');
+        stepSpan.className = 'step';
+        stepSpan.textContent = `${i + 1}.`;
+        row.appendChild(stepSpan);
+
+        const whiteIdx = i * 2 + 1;
+        const whiteSpan = document.createElement('span');
+        whiteSpan.className = 'move';
+        if (aktifSiraNo === whiteIdx) {
+          whiteSpan.classList.add('active-move');
+        }
+        whiteSpan.textContent = h.beyaz;
+        whiteSpan.addEventListener('click', () => gecmisDurumaGit(whiteIdx));
+        row.appendChild(whiteSpan);
+
+        if (h.siyah && h.siyah.trim() !== '') {
+          const blackIdx = i * 2 + 2;
+          const blackSpan = document.createElement('span');
+          blackSpan.className = 'move';
+          if (aktifSiraNo === blackIdx) {
+            blackSpan.classList.add('active-move');
+          }
+          blackSpan.textContent = h.siyah;
+          blackSpan.addEventListener('click', () => gecmisDurumaGit(blackIdx));
+          row.appendChild(blackSpan);
+        } else {
+          const emptySpan = document.createElement('span');
+          emptySpan.className = 'move';
+          emptySpan.style.cursor = 'default';
+          row.appendChild(emptySpan);
+        }
+
+        list.appendChild(row);
+      });
+      const container = document.getElementById('move-history');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function gecmisDurumaGit(idx) {
+      if (aiDusununuyor) return; // Algoritma çalışırken geçişi engelle
+
+      if (analizModuAktif) {
+        if (idx < 0 || idx >= analizDurumlari.length) return;
+        analizIndeksi = idx;
+        durumGeriYukle(analizDurumlari[idx]);
+      } else {
+        // Canlı oyundayız
+        const sonLimit = durumGecmisi.length; // Canlı oyunun en son hamle indeks sınırı
+
+        // Eğer izlediğimiz konumdan canlı oyuna geri dönmek istiyorsak
+        if (idx === sonLimit) {
+          if (canlıOyunDurumu) {
+            tahta = canlıOyunDurumu.tahta;
+            aktifSira = canlıOyunDurumu.aktifSira;
+            yenilenTaslar = canlıOyunDurumu.yenilenTaslar;
+            enPassantHedefi = canlıOyunDurumu.enPassantHedefi;
+            sonHamle = canlıOyunDurumu.sonHamle;
+            kalanSure = canlıOyunDurumu.kalanSure;
+            oyunBitti = canlıOyunDurumu.oyunBitti;
+            canlıOyunDurumu = null;
+          }
+          izlenenGecmisIndex = -1;
+
+          tahtayiCiz();
+          gecmisiGuncelle();
+          saatleriGuncelle();
+          siraGuncelle(sahTehditteMi(aktifSira, tahta));
+        } else {
+          // Geçmiş bir duruma gitmek istiyoruz
+          if (idx < 0 || idx >= sonLimit) return;
+
+          // Eğer ilk kez geçmişe gidiyorsak, canlı oyun durumunu saklayalım
+          if (izlenenGecmisIndex === -1) {
+            canlıOyunDurumu = {
+              tahta: JSON.parse(JSON.stringify(tahta)),
+              aktifSira: aktifSira,
+              yenilenTaslar: JSON.parse(JSON.stringify(yenilenTaslar)),
+              enPassantHedefi: enPassantHedefi ? { ...enPassantHedefi } : null,
+              sonHamle: sonHamle ? { ...sonHamle } : null,
+              hamleGecmisi: JSON.parse(JSON.stringify(hamleGecmisi)),
+              kalanSure: { ...kalanSure },
+              oyunBitti: oyunBitti
+            };
+          }
+
+          izlenenGecmisIndex = idx;
+          const durum = durumGecmisi[idx];
+
+          tahta = JSON.parse(JSON.stringify(durum.tahta));
+          aktifSira = durum.aktifSira;
+          yenilenTaslar = JSON.parse(JSON.stringify(durum.yenilenTaslar));
+          enPassantHedefi = durum.enPassantHedefi ? { ...durum.enPassantHedefi } : null;
+          sonHamle = durum.sonHamle ? { ...durum.sonHamle } : null;
+          kalanSure = { ...durum.kalanSure };
+          oyunBitti = durum.oyunBitti;
+
+          tahtayiCiz();
+          gecmisiGuncelle();
+          saatleriGuncelle();
+          siraGuncelle(sahTehditteMi(aktifSira, tahta));
+        }
+      }
+    }
+
+    function sonHamleyeEkTakiEkle(taki) {
+      if (hamleGecmisi.length === 0) return;
+      const son = hamleGecmisi[hamleGecmisi.length - 1];
+      if (aktifSira === SIYAH) son.beyaz += taki; // Sıra siyaha geçtiyse, son hamleyi beyaz yapmıştır
+      else son.siyah += taki;
+      gecmisiGuncelle();
+    }
+
+    // ====================================================================
+    //  5. TEMEL HAMLE MEKANİKLERİ
+    // ====================================================================
+
+    function kareSecildi(satir, sutun) {
+      initAudio(); // Kullanıcı ilk etkileşime girdiğinde sesi aç
+      if (analizModuAktif) return;
+      if (!oyunKuruldu || oyunBitti || aiDusununuyor || terfiBekleniyor || izlenenGecmisIndex !== -1) return;
+      if (oyunModu === 'PvE' && aktifSira === bilgisayarRengi) return;
+
+      const tiklananTas = tahta[satir][sutun];
+
+      if (!seciliKare) {
+        if (tiklananTas && tiklananTas.renk === aktifSira) {
+          seciliKare = { satir, sutun };
+          gecerliHamleler = gecerliHamleleriHesapla(satir, sutun);
+          tahtayiCiz();
+        }
+        return;
+      }
+
+      if (seciliKare.satir === satir && seciliKare.sutun === sutun) {
+        seciliKare = null; gecerliHamleler = []; tahtayiCiz(); return;
+      }
+
+      if (tiklananTas && tiklananTas.renk === aktifSira) {
+        seciliKare = { satir, sutun };
+        gecerliHamleler = gecerliHamleleriHesapla(satir, sutun);
+        tahtayiCiz();
+        return;
+      }
+
+      if (!gecerliHamleler.some(h => h.satir === satir && h.sutun === sutun)) return;
+
+      hamleYap(seciliKare.satir, seciliKare.sutun, satir, sutun);
+    }
+
+    async function hamleYap(eskiS, eskiX, yeniS, yeniX) {
+      // Durumu geri almak üzere kaydet
+      durumGecmisi.push({
+        tahta: JSON.parse(JSON.stringify(tahta)),
+        aktifSira: aktifSira,
+        yenilenTaslar: JSON.parse(JSON.stringify(yenilenTaslar)),
+        enPassantHedefi: enPassantHedefi ? { ...enPassantHedefi } : null,
+        sonHamle: sonHamle ? { ...sonHamle } : null,
+        hamleGecmisi: JSON.parse(JSON.stringify(hamleGecmisi)),
+        kalanSure: { ...kalanSure },
+        oyunBasladi: oyunBasladi,
+        oyunBitti: oyunBitti,
+        pozisyonGecmisi: [...pozisyonGecmisi],
+        piyonsuzYemesizHamleSayici: piyonsuzYemesizHamleSayici
+      });
+
+      const tas = tahta[eskiS][eskiX];
+      const hedef = tahta[yeniS][yeniX];
+
+      // 1. ROK KONTROLÜ
+      if (tas.tip === SAH && Math.abs(yeniX - eskiX) === 2) {
+        tas.rokYapti = true;
+        if (yeniX === 6) { // Kısa rok
+          tahta[yeniS][5] = tahta[yeniS][7]; tahta[yeniS][7] = null; tahta[yeniS][5].hareketEtti = true;
+        } else if (yeniX === 2) { // Uzun rok
+          tahta[yeniS][3] = tahta[yeniS][0]; tahta[yeniS][0] = null; tahta[yeniS][3].hareketEtti = true;
+        }
+      }
+
+      // 2. GEÇERKEN ALMA (En Passant) KONTROLÜ
+      let enPassantYenilen = null;
+      let enPassantSatir = -1;
+      if (tas.tip === PIYON && enPassantHedefi && yeniS === enPassantHedefi.satir && yeniX === enPassantHedefi.sutun) {
+        enPassantSatir = tas.renk === BEYAZ ? yeniS + 1 : yeniS - 1;
+        enPassantYenilen = tahta[enPassantSatir][yeniX];
+        tahta[enPassantSatir][yeniX] = null; // Rakibi tahtadan sil
+      }
+
+      // 3. TAŞ YEME KAYDI
+      if (hedef) yenilenTaslar[hedef.renk].push(hedef.tip);
+      if (enPassantYenilen) yenilenTaslar[enPassantYenilen.renk].push(enPassantYenilen.tip);
+
+      // 40 hamle beraberlik kuralı sayacı güncellemesi
+      const isPawnMove = tas.tip === PIYON;
+      const isCapture = !!hedef || !!enPassantYenilen;
+      if (isPawnMove || isCapture) {
+        piyonsuzYemesizHamleSayici = 0;
+      } else {
+        piyonsuzYemesizHamleSayici++;
+      }
+
+      // 4. NOTASYON KAYDI (Hamle yapıldıktan sonra tip değişmeden önce yazılmalı)
+      let hamleMetni = '';
+      const eskiKonum = koordinataCevir(eskiS, eskiX);
+      const yeniKonum = koordinataCevir(yeniS, yeniX);
+      const yemeIsareti = (hedef || enPassantYenilen) ? 'x' : '-';
+
+      if (tas.tip === SAH && Math.abs(yeniX - eskiX) === 2) {
+        hamleMetni = yeniX === 6 ? 'O-O' : 'O-O-O';
+      } else {
+        if (tas.tip === PIYON && yemeIsareti === 'x') hamleMetni = `${eskiKonum[0]}x${yeniKonum}`; // Örn: exd5
+        else hamleMetni = `${tas.tip === PIYON ? '' : TAS_SEMBOLLERI[tas.renk][tas.tip]}${eskiKonum}${yemeIsareti}${yeniKonum}`;
+      }
+
+      // 5. PİYON TERFİSİ
+      if (tas.tip === PIYON && ((tas.renk === BEYAZ && yeniS === 0) || (tas.renk === SIYAH && yeniS === 7))) {
+        let secilenTip = VEZIR;
+        if (oyunModu === 'PvE' && aktifSira === bilgisayarRengi) {
+          secilenTip = VEZIR;
+          botKonus('terfi');
+        } else {
+          tahta[yeniS][yeniX] = tas;
+          tahta[eskiS][eskiX] = null;
+          if (enPassantYenilen) tahta[enPassantSatir][yeniX] = null;
+          tahtayiCiz();
+
+          secilenTip = await terfiEkraniGoster(tas.renk);
+
+          tahta[eskiS][eskiX] = tas;
+          tahta[yeniS][yeniX] = hedef;
+          if (enPassantYenilen) tahta[enPassantSatir][yeniX] = enPassantYenilen;
+        }
+        tas.tip = secilenTip;
+        const terfiSembolleri = { vezir: 'Q', kale: 'R', fil: 'B', at: 'N' };
+        hamleMetni += '=' + terfiSembolleri[secilenTip];
+      }
+
+      // Geçmiş listesine ekle
+      if (aktifSira === BEYAZ) hamleGecmisi.push({ beyaz: hamleMetni, siyah: '' });
+      else hamleGecmisi[hamleGecmisi.length - 1].siyah = hamleMetni;
+      gecmisiGuncelle();
+
+      // 6. EN PASSANT HEDEFİ GÜNCELLEMESİ (Sadece 2 kare ileri giden piyonlar)
+      if (tas.tip === PIYON && Math.abs(yeniS - eskiS) === 2) {
+        enPassantHedefi = { satir: tas.renk === BEYAZ ? yeniS + 1 : yeniS - 1, sutun: yeniX };
+      } else {
+        enPassantHedefi = null;
+      }
+
+      // 7. HAMLEYİ UYGULA
+      tas.hareketEtti = true;
+      tahta[yeniS][yeniX] = tas;
+      tahta[eskiS][eskiX] = null;
+
+      let hamleSesi = (hedef || enPassantYenilen) ? 'yeme' : 'hamle';
+      animasyonKuyrugu = { eskiS, eskiX, yeniS, yeniX };
+      sonHamle = { eskiS, eskiX, yeniS, yeniX };
+
+      // Sırayı değiştir ve İlk Hamle Saati
+      aktifSira = aktifSira === BEYAZ ? SIYAH : BEYAZ;
+      seciliKare = null; gecerliHamleler = [];
+
+      if (!oyunBasladi) {
+        oyunBasladi = true;
+        baslatZamanlayici();
+      }
+
+      siraDurumunuKontrolEt(hamleSesi);
+    }
+
+    function siraDurumunuKontrolEt(varsayilanSes) {
+      // Mevcut konumu pozisyon geçmişine ekle
+      const simdikiPozStr = serializeTahta(tahta, aktifSira);
+      pozisyonGecmisi.push(simdikiPozStr);
+
+      // Üçlü konum tekrarı kontrolü
+      let tekrarSayisi = 0;
+      for (let p of pozisyonGecmisi) {
+        if (p === simdikiPozStr) tekrarSayisi++;
+      }
+
+      if (tekrarSayisi >= 3) {
+        oyunSesCikar('bitis');
+        oyunBitir(null, "Beraberlik (3 Kez Konum Tekrarı)!");
+        return;
+      }
+
+      // 40 hamle (80 yarım hamle) kuralı beraberlik kontrolü
+      if (piyonsuzYemesizHamleSayici >= 80) {
+        oyunSesCikar('bitis');
+        oyunBitir(null, "Beraberlik (40 Hamle Kuralı)!");
+        return;
+      }
+
+      const inCheck = sahTehditteMi(aktifSira, tahta);
+      let hamleVarMi = false;
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (tahta[r][c] && tahta[r][c].renk === aktifSira) {
+            if (gecerliHamleleriHesapla(r, c).length > 0) {
+              hamleVarMi = true; break;
+            }
+          }
+        }
+        if (hamleVarMi) break;
+      }
+
+      if (!hamleVarMi) {
+        if (inCheck) {
+          sonHamleyeEkTakiEkle('#');
+          oyunSesCikar('bitis');
+          oyunBitir(aktifSira === BEYAZ ? SIYAH : BEYAZ, "Şah Mat!");
+        } else {
+          oyunSesCikar('bitis');
+          oyunBitir(null, "Beraberlik (Pat)!");
+        }
+      } else {
+        if (inCheck) {
+          sonHamleyeEkTakiEkle('+');
+          oyunSesCikar('sah');
+          if (aktifSira === bilgisayarRengi) botKonus('sahCekti');
+        } else if (varsayilanSes) {
+          oyunSesCikar(varsayilanSes);
+          if (aktifSira === bilgisayarRengi) botKonus(botunSonDurumu);
+        }
+
+        siraGuncelle(inCheck);
+        tahtayiCiz();
+        saatleriGuncelle();
+
+        if (oyunModu === 'PvE' && aktifSira === bilgisayarRengi && !oyunBitti) {
+          aiDusununuyor = true;
+          if (inCheck) {
+            botKonus('sahYedi');
+          } else {
+            botKonus('dusunuyor');
+          }
+          const dusunuyorMetni = bilgisayarRengi === BEYAZ
+            ? '<span style="color:#d4a34a">⚪ Beyaz Düşünüyor...</span>'
+            : '<span style="color:#d4a34a">⚫ Siyah Düşünüyor...</span>';
+          document.getElementById('turn-info').innerHTML = dusunuyorMetni;
+          setTimeout(bilgisayarHamleYap, 50);
+        }
+      }
+    }
+
+    function oyunBitir(kazanan, mesaj = "") {
+      oyunBitti = true; seciliKare = null; gecerliHamleler = []; tahtayiCiz();
+      if (timerInterval) clearInterval(timerInterval);
+      saatleriGuncelle();
+
+      siraInfo.style.display = 'block';
+      siraInfo.className = 'white-turn';
+      siraInfo.classList.remove('in-check-text');
+      siraInfo.textContent = '🏁 Maç Bitti!';
+
+      if (kazanan) {
+        const kazananIsim = kazanan === BEYAZ ? '⚪ Beyaz' : '⚫ Siyah';
+        winText.innerHTML = `<div style="font-size:24px; color:#ff6b6b; margin-bottom:12px; font-family:'Inter',sans-serif;">${mesaj}</div>${kazananIsim} Kazandı!`;
+        if (kazanan === bilgisayarRengi) {
+          botKonus('kazandi');
+        } else {
+          botKonus('kaybetti');
+        }
+      } else {
+        winText.textContent = mesaj;
+        botKonus('berabere');
+      }
+
+      // Ekranın aniden kapanmaması, oyuncunun son hamleyi 
+      // görebilmesi için 1 saniyelik gecikme eklendi.
+      setTimeout(() => {
+        overlay.classList.add('show');
+      }, 1000);
+    }
+
+    // ====================================================================
+    //  6. SATRANÇ KURALLARI (Hamle Doğrulama)
+    // ====================================================================
+
+    function gecerliHamleleriHesapla(satir, sutun, t = tahta) {
+      const tas = t[satir][sutun];
+      if (!tas) return [];
+
+      let hamleler = sozdeGecerliHamleleriHesapla(satir, sutun, t, false);
+      if (tas.tip === SAH && !tas.hareketEtti) hamleler.push(...rokHamleleri(satir, sutun, tas.renk, t));
+
+      let gercekHamleler = [];
+      for (let h of hamleler) {
+        if (sanalHamleYapVeKontrolEt(satir, sutun, h.satir, h.sutun, tas.renk, t)) {
+          gercekHamleler.push(h);
+        }
+      }
+      return gercekHamleler;
+    }
+
+    function sanalHamleYapVeKontrolEt(eskiS, eskiX, yeniS, yeniX, renk, t = tahta) {
+      const tas = t[eskiS][eskiX];
+      const hedef = t[yeniS][yeniX];
+
+      let enPassantYenilen = null;
+      let enPassantSatir = -1;
+
+      if (tas.tip === PIYON && enPassantHedefi && yeniS === enPassantHedefi.satir && yeniX === enPassantHedefi.sutun) {
+        enPassantSatir = tas.renk === BEYAZ ? yeniS + 1 : yeniS - 1;
+        enPassantYenilen = t[enPassantSatir][yeniX];
+        t[enPassantSatir][yeniX] = null;
+      }
+
+      t[yeniS][yeniX] = tas;
+      t[eskiS][eskiX] = null;
+      const tehdit = sahTehditteMi(renk, t);
+
+      t[eskiS][eskiX] = tas;
+      t[yeniS][yeniX] = hedef;
+      if (enPassantYenilen) t[enPassantSatir][yeniX] = enPassantYenilen;
+
+      return !tehdit;
+    }
+
+    function sahTehditteMi(renk, t) {
+      let sahS = -1, sahX = -1;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (t[r][c] && t[r][c].tip === SAH && t[r][c].renk === renk) { sahS = r; sahX = c; break; }
+        }
+        if (sahS !== -1) break;
+      }
+      if (sahS === -1) return false;
+
+      const rakipRenk = renk === BEYAZ ? SIYAH : BEYAZ;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (t[r][c] && t[r][c].renk === rakipRenk) {
+            const hamleler = sozdeGecerliHamleleriHesapla(r, c, t, true);
+            if (hamleler.some(h => h.satir === sahS && h.sutun === sahX)) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // ===== HAMLE ÜRETİCİLER (Sanal & Gerçek) =====
+    function sozdeGecerliHamleleriHesapla(satir, sutun, t = tahta, sadeceSaldiri = false) {
+      const tas = t[satir][sutun];
+      if (!tas) return [];
+
+      switch (tas.tip) {
+        case PIYON: return piyonHamleleri(satir, sutun, tas.renk, t, sadeceSaldiri);
+        case KALE: return dogrusalHamleler(satir, sutun, tas.renk, [[-1, 0], [1, 0], [0, -1], [0, 1]], t);
+        case AT: return atHamleleri(satir, sutun, tas.renk, t);
+        case FIL: return dogrusalHamleler(satir, sutun, tas.renk, [[-1, -1], [-1, 1], [1, -1], [1, 1]], t);
+        case VEZIR: return dogrusalHamleler(satir, sutun, tas.renk, [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]], t);
+        case SAH: return sahHamleleri(satir, sutun, tas.renk, t);
+      }
+      return [];
+    }
+
+    function sinirIcinde(satir, sutun) { return satir >= 0 && satir < 8 && sutun >= 0 && sutun < 8; }
+    function hareketEdebilir(satir, sutun, renk, t) {
+      if (!sinirIcinde(satir, sutun)) return false;
+      return !t[satir][sutun] || t[satir][sutun].renk !== renk;
+    }
+
+    function piyonHamleleri(satir, sutun, renk, t, sadeceSaldiri) {
+      const hamleler = [];
+      const yon = renk === BEYAZ ? -1 : 1;
+      const baslangicSatiri = renk === BEYAZ ? 6 : 1;
+
+      if (!sadeceSaldiri) {
+        if (sinirIcinde(satir + yon, sutun) && !t[satir + yon][sutun]) {
+          hamleler.push({ satir: satir + yon, sutun });
+          if (satir === baslangicSatiri && !t[satir + 2 * yon][sutun]) hamleler.push({ satir: satir + 2 * yon, sutun });
+        }
+      }
+
+      // Çapraz Yeme ve En Passant
+      for (const ds of [-1, 1]) {
+        const ys = satir + yon, yx = sutun + ds;
+        if (sinirIcinde(ys, yx)) {
+          if (sadeceSaldiri) {
+            hamleler.push({ satir: ys, sutun: yx });
+          } else {
+            if (t[ys][yx] && t[ys][yx].renk !== renk) {
+              hamleler.push({ satir: ys, sutun: yx });
+            } else if (enPassantHedefi && ys === enPassantHedefi.satir && yx === enPassantHedefi.sutun) {
+              hamleler.push({ satir: ys, sutun: yx }); // En Passant hakkı!
+            }
+          }
+        }
+      }
+      return hamleler;
+    }
+
+    function dogrusalHamleler(satir, sutun, renk, yonler, t) {
+      const hamleler = [];
+      for (const [dSatir, dSutun] of yonler) {
+        let ys = satir + dSatir, yx = sutun + dSutun;
+        while (sinirIcinde(ys, yx)) {
+          const hedef = t[ys][yx];
+          if (!hedef) hamleler.push({ satir: ys, sutun: yx });
+          else {
+            if (hedef.renk !== renk) hamleler.push({ satir: ys, sutun: yx });
+            break;
+          }
+          ys += dSatir; yx += dSutun;
+        }
+      }
+      return hamleler;
+    }
+
+    function atHamleleri(satir, sutun, renk, t) {
+      const hamleler = [];
+      const atYonleri = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
+      for (const [dS, dX] of atYonleri) {
+        if (hareketEdebilir(satir + dS, sutun + dX, renk, t)) hamleler.push({ satir: satir + dS, sutun: sutun + dX });
+      }
+      return hamleler;
+    }
+
+    function sahHamleleri(satir, sutun, renk, t) {
+      const hamleler = [];
+      const yonler = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+      for (const [dS, dX] of yonler) {
+        if (hareketEdebilir(satir + dS, sutun + dX, renk, t)) hamleler.push({ satir: satir + dS, sutun: sutun + dX });
+      }
+      return hamleler;
+    }
+
+    function rokHamleleri(satir, sutun, renk, t = tahta) {
+      let hamleler = [];
+      if (sahTehditteMi(renk, t)) return hamleler;
+
+      let kisaKale = t[satir][7];
+      if (kisaKale && kisaKale.tip === KALE && kisaKale.renk === renk && !kisaKale.hareketEtti) {
+        if (!t[satir][5] && !t[satir][6] && sanalHamleYapVeKontrolEt(satir, sutun, satir, 5, renk, t)) {
+          hamleler.push({ satir: satir, sutun: 6, rok: 'kisa' });
+        }
+      }
+      let uzunKale = t[satir][0];
+      if (uzunKale && uzunKale.tip === KALE && uzunKale.renk === renk && !uzunKale.hareketEtti) {
+        if (!t[satir][1] && !t[satir][2] && !t[satir][3] && sanalHamleYapVeKontrolEt(satir, sutun, satir, 3, renk, t)) {
+          hamleler.push({ satir: satir, sutun: 2, rok: 'uzun' });
+        }
+      }
+      return hamleler;
+    }
+
+
+    // ====================================================================
+    //  7. YAPAY ZEKA (Minimax ve Değerlendirme)
+    // ====================================================================
+
+    function serializeTahta(t, sira) {
+      let res = "";
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const tas = t[r][c];
+          if (!tas) {
+            res += ".";
+          } else {
+            res += tas.tip[0] + tas.renk[0] + (tas.hareketEtti ? "1" : "0");
+          }
+        }
+      }
+      res += "_" + sira;
+      return res;
+    }
+
+    const TAS_PUANLARI = {
+      piyon: 100,
+      at: 300,
+      fil: 300,
+      kale: 500,
+      vezir: 900,
+      sah: 20000
+    };
+
+    // ====================================================================
+    //  PIECE-SQUARE TABLES (PST) - KONUM-KARE TABLOLARI (Beyaz Perspektifi)
+    // ====================================================================
+    // Değerlerimiz piyon = 10 puan sistemine göre ölçeklendirilmiştir.
+    const PST_PIYON = [
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [5, 5, 5, 5, 5, 5, 5, 5],
+      [1, 1, 2, 3, 3, 2, 1, 1],
+      [0.5, 0.5, 1, 2.5, 2.5, 1, 0.5, 0.5],
+      [0, 0, 0, 2, 2, 0, 0, 0],
+      [0.5, -0.5, -1, 0, 0, -1, -0.5, 0.5],
+      [0.5, 1, 1, -2, -2, 1, 1, 0.5],
+      [0, 0, 0, 0, 0, 0, 0, 0]
+    ];
+
+    const PST_AT = [
+      [-5, -4, -3, -3, -3, -3, -4, -5],
+      [-4, -2, 0, 0, 0, 0, -2, -4],
+      [-3, 0, 1, 1.5, 1.5, 1, 0, -3],
+      [-3, 0.5, 1.5, 2, 2, 1.5, 0.5, -3],
+      [-3, 0, 1.5, 2, 2, 1.5, 0, -3],
+      [-3, 0.5, 1, 1.5, 1.5, 1, 0.5, -3],
+      [-4, -2, 0, 0.5, 0.5, 0, -2, -4],
+      [-5, -4, -3, -3, -3, -3, -4, -5]
+    ];
+
+    const PST_FIL = [
+      [-2, -1, -1, -1, -1, -1, -1, -2],
+      [-1, 0, 0, 0, 0, 0, 0, -1],
+      [-1, 0, 0.5, 1, 1, 0.5, 0, -1],
+      [-1, 0.5, 0.5, 1, 1, 0.5, 0.5, -1],
+      [-1, 0, 1, 1, 1, 1, 0, -1],
+      [-1, 1, 1, 1, 1, 1, 1, -1],
+      [-1, 0.5, 0, 0, 0, 0, 0.5, -1],
+      [-2, -1, -1, -1, -1, -1, -1, -2]
+    ];
+
+    const PST_KALE = [
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0.5, 1, 1, 1, 1, 1, 1, 0.5],
+      [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
+      [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
+      [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
+      [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
+      [-0.5, 0, 0, 0, 0, 0, 0, -0.5],
+      [0, 0, 0, 0.5, 0.5, 0, 0, 0]
+    ];
+
+    const PST_VEZIR = [
+      [-2, -1, -1, -0.5, -0.5, -1, -1, -2],
+      [-1, 0, 0, 0, 0, 0, 0, -1],
+      [-1, 0, 0.5, 0.5, 0.5, 0.5, 0, -1],
+      [-0.5, 0, 0.5, 0.5, 0.5, 0.5, 0, -0.5],
+      [0, 0, 0.5, 0.5, 0.5, 0.5, 0, -0.5],
+      [-1, 0.5, 0.5, 0.5, 0.5, 0.5, 0, -1],
+      [-1, 0, 0.5, 0, 0, 0.5, 0, -1],
+      [-2, -1, -1, -0.5, -0.5, -1, -1, -2]
+    ];
+
+    const PST_SAH = [
+      [-3, -4, -4, -5, -5, -4, -4, -3],
+      [-3, -4, -4, -5, -5, -4, -4, -3],
+      [-3, -4, -4, -5, -5, -4, -4, -3],
+      [-3, -4, -4, -5, -5, -4, -4, -3],
+      [-2, -3, -3, -4, -4, -3, -3, -2],
+      [-1, -2, -2, -2, -2, -2, -2, -1],
+      [2, 2, 0, 0, 0, 0, 2, 2],
+      [2, 3, 1, 0, 0, 1, 3, 2]
+    ];
+
+    const PST_SAH_OYUN_SONU = [
+      [-5, -4, -3, -2, -2, -3, -4, -5],
+      [-3, -2, -1, 0, 0, -1, -2, -3],
+      [-3, -1, 2, 3, 3, 2, -1, -3],
+      [-3, -1, 3, 4, 4, 3, -1, -3],
+      [-3, -1, 3, 4, 4, 3, -1, -3],
+      [-3, -1, 2, 3, 3, 2, -1, -3],
+      [-3, -3, 0, 0, 0, 0, -3, -3],
+      [-5, -3, -3, -3, -3, -3, -3, -5]
+    ];
+
+    function tahtaKopyala(t) {
+      return t.map(row => row.map(tas => tas ? Object.assign({}, tas) : null));
+    }
+
+    function tahtaDegerlendir(t) {
+      // Erken/orta safhayı belirlemek için toplam materyali hesaplayalım
+      let toplamMateryal = 0;
+      let beyazPiyonsuzMaterial = 0;
+      let siyahPiyonsuzMaterial = 0;
+      let beyazSahS = -1, beyazSahX = -1;
+      let siyahSahS = -1, siyahSahX = -1;
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const tas = t[r][c];
+          if (tas) {
+            toplamMateryal += TAS_PUANLARI[tas.tip];
+
+            if (tas.tip === SAH) {
+              if (tas.renk === BEYAZ) {
+                beyazSahS = r; beyazSahX = c;
+              } else {
+                siyahSahS = r; siyahSahX = c;
+              }
+            } else if (tas.tip !== PIYON) {
+              if (tas.renk === BEYAZ) {
+                beyazPiyonsuzMaterial += TAS_PUANLARI[tas.tip];
+              } else {
+                siyahPiyonsuzMaterial += TAS_PUANLARI[tas.tip];
+              }
+            }
+          }
+        }
+      }
+
+      const erkenOrtaSafha = toplamMateryal > 21500; // 2 Şah (40000) + 3500 puanlık diğer taşlar (şahlar hariç, yani 20000*2 + 1500)
+      const oyunSonu = (beyazPiyonsuzMaterial <= 1500 && siyahPiyonsuzMaterial <= 1500);
+
+      let skor = 0;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const tas = t[r][c];
+          if (tas) {
+            const carpani = tas.renk === SIYAH ? 1 : -1;
+            let pozisyonBonusu = 0;
+
+            // Konum-Kare Tablosu (PST) Değerinin Hesaplanması (Beyaz için r, Siyah için simetrik 7 - r)
+            const lookupRow = tas.renk === BEYAZ ? r : (7 - r);
+            const lookupCol = c;
+            let pstDegeri = 0;
+
+            if (tas.tip === PIYON) {
+              pstDegeri = PST_PIYON[lookupRow][lookupCol];
+            } else if (tas.tip === AT) {
+              pstDegeri = PST_AT[lookupRow][lookupCol];
+            } else if (tas.tip === FIL) {
+              pstDegeri = PST_FIL[lookupRow][lookupCol];
+            } else if (tas.tip === KALE) {
+              pstDegeri = PST_KALE[lookupRow][lookupCol];
+            } else if (tas.tip === VEZIR) {
+              pstDegeri = PST_VEZIR[lookupRow][lookupCol];
+            } else if (tas.tip === SAH) {
+              if (erkenOrtaSafha) {
+                pstDegeri = PST_SAH[lookupRow][lookupCol];
+              } else {
+                pstDegeri = PST_SAH_OYUN_SONU[lookupRow][lookupCol];
+              }
+            }
+            pozisyonBonusu += pstDegeri;
+
+            // Piyon ve At için merkez kontrolü
+            if (tas.tip === PIYON || tas.tip === AT) {
+              if (r >= 3 && r <= 4 && c >= 3 && c <= 4) pozisyonBonusu = 2;
+            }
+
+            // Piyon için Aşama Bağımlı Oyun Sonu Terfi İlerleme Bonusu
+            if (tas.tip === PIYON && oyunSonu) {
+              const kalanKare = tas.renk === BEYAZ ? r : (7 - r);
+              if (kalanKare === 1) pozisyonBonusu += 80;
+              else if (kalanKare === 2) pozisyonBonusu += 40;
+              else if (kalanKare === 3) pozisyonBonusu += 15;
+            }
+
+            // Piyon Yapısı Analizi (Pawn Structure Analysis)
+            if (tas.tip === PIYON) {
+              // a) Duble Piyon Kontrolü (Doubled Pawns) - Sütunda başka kendi piyonu var mı?
+              let dublePiyonVar = false;
+              for (let row = 0; row < 8; row++) {
+                if (row !== r) {
+                  const baskaTas = t[row][c];
+                  if (baskaTas && baskaTas.tip === PIYON && baskaTas.renk === tas.renk) {
+                    dublePiyonVar = true;
+                    break;
+                  }
+                }
+              }
+              if (dublePiyonVar) {
+                pozisyonBonusu -= 1.5; // -15 centipawn ölçeklenmiş ceza
+              }
+
+              // b) İzole Piyon Kontrolü (Isolated Pawns) - Yan sütunlarda kendi piyonu var mı?
+              let komsuSutunlardaKendiPiyonuVar = false;
+              const solSutun = c - 1;
+              const sagSutun = c + 1;
+              for (let row = 0; row < 8; row++) {
+                if (solSutun >= 0) {
+                  const solTas = t[row][solSutun];
+                  if (solTas && solTas.tip === PIYON && solTas.renk === tas.renk) {
+                    komsuSutunlardaKendiPiyonuVar = true;
+                    break;
+                  }
+                }
+                if (sagSutun < 8) {
+                  const sagTas = t[row][sagSutun];
+                  if (sagTas && sagTas.tip === PIYON && sagTas.renk === tas.renk) {
+                    komsuSutunlardaKendiPiyonuVar = true;
+                    break;
+                  }
+                }
+              }
+              if (!komsuSutunlardaKendiPiyonuVar) {
+                pozisyonBonusu -= 2.0; // -20 centipawn ölçeklenmiş ceza
+              }
+            }
+
+            // Piyon Tehdidi Cezası (Pawn Threat Penalty)
+            if (tas.tip !== PIYON && tas.tip !== SAH) {
+              let piyonTehdidiVar = false;
+              if (tas.renk === BEYAZ) {
+                // Beyaz değerli taş için üst satırdaki (r - 1) siyah piyon tehdidi
+                const ustSatir = r - 1;
+                if (ustSatir >= 0) {
+                  if (c - 1 >= 0) {
+                    const komsu = t[ustSatir][c - 1];
+                    if (komsu && komsu.tip === PIYON && komsu.renk === SIYAH) {
+                      piyonTehdidiVar = true;
+                    }
+                  }
+                  if (!piyonTehdidiVar && c + 1 < 8) {
+                    const komsu = t[ustSatir][c + 1];
+                    if (komsu && komsu.tip === PIYON && komsu.renk === SIYAH) {
+                      piyonTehdidiVar = true;
+                    }
+                  }
+                }
+              } else {
+                // Siyah değerli taş için alt satırdaki (r + 1) beyaz piyon tehdidi
+                const altSatir = r + 1;
+                if (altSatir < 8) {
+                  if (c - 1 >= 0) {
+                    const komsu = t[altSatir][c - 1];
+                    if (komsu && komsu.tip === PIYON && komsu.renk === BEYAZ) {
+                      piyonTehdidiVar = true;
+                    }
+                  }
+                  if (!piyonTehdidiVar && c + 1 < 8) {
+                    const komsu = t[altSatir][c + 1];
+                    if (komsu && komsu.tip === PIYON && komsu.renk === BEYAZ) {
+                      piyonTehdidiVar = true;
+                    }
+                  }
+                }
+              }
+
+              if (piyonTehdidiVar) {
+                pozisyonBonusu -= 50; // Piyon tarafından tehdit edilme cezası
+              }
+            }
+
+            // ŞAH GÜVENLİĞİ DEĞERLENDİRMESİ
+            if (tas.tip === SAH) {
+              if (tas.rokYapti === true) {
+                // a) Rok Bonusu
+                pozisyonBonusu += 60;
+              } else if (!tas.hareketEtti) {
+                // b) Merkezde Kalma Cezası (erken/orta oyunda)
+                const baslangicSutununda = (c === 3 || c === 4);
+
+                // Önündeki dikeyde kendi piyonu var mı kontrolü
+                let piyonKorumaVar = false;
+                const piyonSatiri = tas.renk === BEYAZ ? 6 : 1;
+                const piyonAdayi = t[piyonSatiri][c];
+                if (piyonAdayi && piyonAdayi.tip === PIYON && piyonAdayi.renk === tas.renk) {
+                  piyonKorumaVar = true;
+                }
+
+                if ((baslangicSutununda || !piyonKorumaVar) && erkenOrtaSafha) {
+                  pozisyonBonusu -= 30;
+                }
+              } else if (tas.hareketEtti && !tas.rokYapti) {
+                // c) Rok Hakkını Kaybetme Cezası
+                pozisyonBonusu -= 50;
+              }
+            }
+
+            skor += (TAS_PUANLARI[tas.tip] + pozisyonBonusu) * carpani;
+          }
+        }
+      }
+
+      // ====================================================================
+      // MAT AĞI (MATING NET) - OYUN SONU DEĞERLENDİRMESİ
+      // ====================================================================
+      // Her iki tarafın ağır/hafif taş materyali düşükse oyun sonudur (örneğin <= 150 puan)
+      if (oyunSonu) {
+        const materyalFarki = beyazPiyonsuzMaterial - siyahPiyonsuzMaterial;
+        const absFark = Math.abs(materyalFarki);
+
+        // Belirgin bir materyal üstünlüğü varsa mat ağı puanlaması yapalım (en az 300 puan, örn: 1 minör veya ağır alet önde olmak)
+        if (absFark >= 300 && beyazSahS !== -1 && siyahSahS !== -1) {
+          if (materyalFarki > 0) {
+            // BEYAZ KAZANIYOR: Siyah Şahı köşeye itmeli, Beyaz Şahı Siyah Şah'a yaklaştırmalıyız
+            const distRow = Math.abs(siyahSahS - 3.5);
+            const distCol = Math.abs(siyahSahX - 3.5);
+            const centerDistance = distRow + distCol; // Siyah şahın merkeze uzaklığı (ne kadar büyükse o kadar köşede)
+
+            const kingDistance = Math.max(Math.abs(beyazSahS - siyahSahS), Math.abs(beyazSahX - siyahSahX)); // İki şah arası Chebyshev mesafesi
+
+            const matAgiBonusu = (centerDistance * 20) + (8 - kingDistance) * 20;
+            skor -= matAgiBonusu; // Beyaz kazandığı için skoru daha negatif yapıyoruz
+          } else {
+            // SİYAH KAZANIYOR: Beyaz Şahı köşeye itmeli, Siyah Şahı Beyaz Şah'a yaklaştırmalıyız
+            const distRow = Math.abs(beyazSahS - 3.5);
+            const distCol = Math.abs(beyazSahX - 3.5);
+            const centerDistance = distRow + distCol; // Beyaz şahın merkeze uzaklığı
+
+            const kingDistance = Math.max(Math.abs(beyazSahS - siyahSahS), Math.abs(beyazSahX - siyahSahX)); // İki şah arası Chebyshev mesafesi
+
+            const matAgiBonusu = (centerDistance * 20) + (8 - kingDistance) * 20;
+            skor += matAgiBonusu; // Siyah kazandığı için skoru daha pozitif yapıyoruz
+          }
+        }
+      }
+
+      return skor;
+    }
+
+    function isSameMove(a, b) {
+      return a && b && a.eskiS === b.eskiS && a.eskiX === b.eskiX && a.yeniS === b.yeniS && a.yeniX === b.yeniX;
+    }
+
+    function saveKillerMove(ply, move) {
+      if (ply === null || ply < 0 || ply >= 100) return;
+      const slot = killerMoves[ply];
+      // Eğer hamle slot[0] ile aynıysa zaten 1. sırada, bir şey yapma
+      if (slot[0] && isSameMove(slot[0], move)) {
+        return;
+      }
+      // Farklıysa, 1. sıradakini 2. sıraya kaydır ve yeni hamleyi 1. sıraya yaz
+      slot[1] = slot[0];
+      slot[0] = { eskiS: move.eskiS, eskiX: move.eskiX, yeniS: move.yeniS, yeniX: move.yeniX };
+    }
+
+    function getMoveOrderingScore(h, t, ply) {
+      const hedefTas = t[h.yeniS][h.yeniX];
+      if (hedefTas) {
+        return 100 + TAS_PUANLARI[hedefTas.tip];
+      }
+      if (ply !== null && ply >= 0 && ply < 100) {
+        const slot = killerMoves[ply];
+        if (isSameMove(h, slot[0])) return 90;
+        if (isSameMove(h, slot[1])) return 80;
+      }
+      return 0;
+    }
+
+    function tumGecerliHamleleriBul(renk, t, ply = null) {
+      let hamleler = [];
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (t[r][c] && t[r][c].renk === renk) {
+            const kareHamleleri = gecerliHamleleriHesapla(r, c, t);
+            for (let h of kareHamleleri) {
+              hamleler.push({ eskiS: r, eskiX: c, yeniS: h.satir, yeniX: h.sutun });
+            }
+          }
+        }
+      }
+      // Alpha-Beta budamasının daha verimli olması için taş yeme ve katil hamleleri önce değerlendir
+      hamleler.sort((a, b) => {
+        const scoreA = getMoveOrderingScore(a, t, ply);
+        const scoreB = getMoveOrderingScore(b, t, ply);
+        return scoreB - scoreA;
+      });
+      return hamleler;
+    }
+
+    function sadeceYemeHamleleriBul(renk, t) {
+      let hamleler = [];
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (t[r][c] && t[r][c].renk === renk) {
+            const kareHamleleri = gecerliHamleleriHesapla(r, c, t);
+            for (let h of kareHamleleri) {
+              const hedefTas = t[h.satir][h.sutun];
+              const isEnPassant = t[r][c].tip === PIYON && enPassantHedefi && h.satir === enPassantHedefi.satir && h.sutun === enPassantHedefi.sutun;
+              if (hedefTas || isEnPassant) {
+                hamleler.push({ eskiS: r, eskiX: c, yeniS: h.satir, yeniX: h.sutun });
+              }
+            }
+          }
+        }
+      }
+      // MVV-LVA Sıralaması (Most Valuable Victim - Least Valuable Victim/Aggressor)
+      hamleler.sort((a, b) => {
+        const hedefA = t[a.yeniS][a.yeniX];
+        const hedefB = t[b.yeniS][b.yeniX];
+        const puanA = hedefA ? TAS_PUANLARI[hedefA.tip] : (t[a.eskiS][a.eskiX].tip === PIYON ? 10 : 0);
+        const puanB = hedefB ? TAS_PUANLARI[hedefB.tip] : (t[b.eskiS][b.eskiX].tip === PIYON ? 10 : 0);
+        return puanB - puanA;
+      });
+      return hamleler;
+    }
+
+    function quiescenceSearch(t, alpha, beta, isSiyah, qDerinlik = 0) {
+      const standPat = tahtaDegerlendir(t);
+
+      // Tahtadaki anlık taş yoğunluğunu sayalım
+      let tasSayisi = 0;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (t[r][c]) tasSayisi++;
+        }
+      }
+
+      // Kullanıcının harika fikri: Adaptif Derinlik Sınırı (Adaptive Depth Scaling)
+      let limitDerinlik = 2;
+      if (tasSayisi < 10) {
+        limitDerinlik = 5;
+      } else if (tasSayisi < 20) {
+        limitDerinlik = 4;
+      }
+
+      if (qDerinlik >= limitDerinlik) {
+        return standPat;
+      }
+
+      if (isSiyah) {
+        // Siyah (AI) maksimize etmeye çalışıyor
+        if (standPat >= beta) {
+          return standPat;
+        }
+        if (standPat > alpha) {
+          alpha = standPat;
+        }
+
+        const yemeHamleleri = sadeceYemeHamleleriBul(SIYAH, t);
+        for (let h of yemeHamleleri) {
+          const kopya = tahtaKopyala(t);
+          aiSanalHamleUygula(kopya, h);
+          const skor = quiescenceSearch(kopya, alpha, beta, false, qDerinlik + 1);
+          if (skor >= beta) {
+            return skor;
+          }
+          if (skor > alpha) {
+            alpha = skor;
+          }
+        }
+        return alpha;
+      } else {
+        // Beyaz (Oyuncu) minimize etmeye çalışıyor
+        if (standPat <= alpha) {
+          return standPat;
+        }
+        if (standPat < beta) {
+          beta = standPat;
+        }
+
+        const yemeHamleleri = sadeceYemeHamleleriBul(BEYAZ, t);
+        for (let h of yemeHamleleri) {
+          const kopya = tahtaKopyala(t);
+          aiSanalHamleUygula(kopya, h);
+          const skor = quiescenceSearch(kopya, alpha, beta, true, qDerinlik + 1);
+          if (skor <= alpha) {
+            return skor;
+          }
+          if (skor < beta) {
+            beta = skor;
+          }
+        }
+        return beta;
+      }
+    }
+
+    function aiSanalHamleUygula(t, h) {
+      const tas = t[h.eskiS][h.eskiX];
+
+      // Rok
+      if (tas.tip === SAH && Math.abs(h.yeniX - h.eskiX) === 2) {
+        tas.rokYapti = true;
+        if (h.yeniX === 6) { t[h.yeniS][5] = t[h.yeniS][7]; t[h.yeniS][7] = null; }
+        else if (h.yeniX === 2) { t[h.yeniS][3] = t[h.yeniS][0]; t[h.yeniS][0] = null; }
+      }
+
+      // En Passant
+      if (tas.tip === PIYON && Math.abs(h.yeniX - h.eskiX) === 1 && !t[h.yeniS][h.yeniX]) {
+        t[tas.renk === BEYAZ ? h.yeniS + 1 : h.yeniS - 1][h.yeniX] = null;
+      }
+
+      t[h.yeniS][h.yeniX] = tas;
+      t[h.eskiS][h.eskiX] = null;
+      if (t[h.yeniS][h.yeniX]) t[h.yeniS][h.yeniX].hareketEtti = true;
+
+      // Terfi
+      if (tas.tip === PIYON && (h.yeniS === 0 || h.yeniS === 7)) {
+        t[h.yeniS][h.yeniX].tip = VEZIR;
+      }
+    }
+
+    function minimax(t, derinlik, alpha, beta, isSiyah, allowNull = true) {
+      if (derinlik === 0) {
+        // Tahtadaki toplam taş sayısını sayalım
+        let tasSayisi = 0;
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            if (t[r][c]) tasSayisi++;
+          }
+        }
+
+        // Durgunluk Araması sadece tahtadaki taş sayısı 20'nin altındayken (geç oyun ortası/sonu) çalışsın
+        // Ayrıca kalan süre 1 dakikanın altındaysa arama yükünü sıfırlamak için yine çalışmasın
+        if (kalanSure[SIYAH] < 60 || tasSayisi >= 20) {
+          return tahtaDegerlendir(t);
+        }
+        return quiescenceSearch(t, alpha, beta, isSiyah);
+      }
+
+      const aktifRenk = isSiyah ? SIYAH : BEYAZ;
+
+      // ====================================================================
+      // NULL MOVE PRUNING (Boş Hamle Budaması)
+      // ====================================================================
+      if (allowNull && derinlik >= 3 && !sahTehditteMi(aktifRenk, t)) {
+        let aktifPiyonsuzMaterial = 0;
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const tas = t[r][c];
+            if (tas && tas.renk === aktifRenk && tas.tip !== PIYON && tas.tip !== SAH) {
+              aktifPiyonsuzMaterial += TAS_PUANLARI[tas.tip];
+            }
+          }
+        }
+
+        if (aktifPiyonsuzMaterial > 1500) {
+          const kopya = tahtaKopyala(t);
+          // R = 2 derinlik azaltımı ile pas geçme araması
+          let nullPuan = -minimax(kopya, derinlik - 1 - 2, -beta, -beta + 1, !isSiyah, false);
+          if (nullPuan >= beta) {
+            return beta;
+          }
+        }
+      }
+
+      const hamleler = tumGecerliHamleleriBul(aktifRenk, t, derinlik);
+
+      if (hamleler.length === 0) {
+        if (sahTehditteMi(aktifRenk, t)) return isSiyah ? -99999 : 99999;
+        return 0; // Pat
+      }
+
+      if (isSiyah) {
+        let maxEval = -Infinity;
+        for (let i = 0; i < hamleler.length; i++) {
+          const h = hamleler[i];
+          const kopya = tahtaKopyala(t);
+          aiSanalHamleUygula(kopya, h);
+
+          const inCheck = sahTehditteMi(aktifRenk, t);
+          const isCapture = t[h.yeniS][h.yeniX] || (t[h.eskiS][h.eskiX].tip === PIYON && enPassantHedefi && h.yeniS === enPassantHedefi.satir && h.yeniX === enPassantHedefi.sutun);
+          const givesCheck = sahTehditteMi(BEYAZ, kopya);
+
+          let puan;
+          if (derinlik >= 3 && i > 3 && !isCapture && !givesCheck && !inCheck) {
+            // LMR (Late Move Reduction) - 1 derinlik indirimi ile sığ arama (derinlik - 2)
+            puan = minimax(kopya, derinlik - 2, alpha, beta, false);
+            // Re-Search: Eğer bu hamle alpha'yı geçerse LMR yanılmıştır, tam derinlikte yeniden ara
+            if (puan > alpha) {
+              puan = minimax(kopya, derinlik - 1, alpha, beta, false);
+            }
+          } else {
+            puan = minimax(kopya, derinlik - 1, alpha, beta, false);
+          }
+
+          if (puan > maxEval) maxEval = puan;
+          if (maxEval > alpha) alpha = maxEval;
+          if (beta <= alpha) {
+            // Katil Hamle (Killer Heuristic) Kaydı
+            const hedefTas = t[h.yeniS][h.yeniX];
+            if (!hedefTas) {
+              saveKillerMove(derinlik, h);
+            }
+            break;
+          }
+        }
+        return maxEval;
+      } else {
+        let minEval = Infinity;
+        for (let i = 0; i < hamleler.length; i++) {
+          const h = hamleler[i];
+          const kopya = tahtaKopyala(t);
+          aiSanalHamleUygula(kopya, h);
+
+          const inCheck = sahTehditteMi(aktifRenk, t);
+          const isCapture = t[h.yeniS][h.yeniX] || (t[h.eskiS][h.eskiX].tip === PIYON && enPassantHedefi && h.yeniS === enPassantHedefi.satir && h.yeniX === enPassantHedefi.sutun);
+          const givesCheck = sahTehditteMi(SIYAH, kopya);
+
+          let puan;
+          if (derinlik >= 3 && i > 3 && !isCapture && !givesCheck && !inCheck) {
+            // LMR (Late Move Reduction) - 1 derinlik indirimi ile sığ arama (derinlik - 2)
+            puan = minimax(kopya, derinlik - 2, alpha, beta, true);
+            // Re-Search: Eğer bu hamle beta'yı geçerse LMR yanılmıştır, tam derinlikte yeniden ara
+            if (puan < beta) {
+              puan = minimax(kopya, derinlik - 1, alpha, beta, true);
+            }
+          } else {
+            puan = minimax(kopya, derinlik - 1, alpha, beta, true);
+          }
+
+          if (puan < minEval) minEval = puan;
+          if (minEval < beta) beta = minEval;
+          if (beta <= alpha) {
+            // Katil Hamle (Killer Heuristic) Kaydı
+            const hedefTas = t[h.yeniS][h.yeniX];
+            if (!hedefTas) {
+              saveKillerMove(derinlik, h);
+            }
+            break;
+          }
+        }
+        return minEval;
+      }
+    }
+
+    async function bilgisayarHamleYap() {
+      if (oyunBitti) return;
+
+      const olasiHamleler = tumGecerliHamleleriBul(bilgisayarRengi, tahta);
+      if (olasiHamleler.length === 0) {
+        aiDusununuyor = false;
+        return;
+      }
+
+      const zorlukSecimi = document.getElementById('ai-difficulty').value;
+
+      // === AÇILIŞ KİTABI (OPENING BOOK) ENTEGRASYONU ===
+      let kitaptanHamleSecildi = false;
+      let secilenHamle = null;
+
+      // Yeşil Elma (Kaotik) botu için %70 ihtimalle kitabı yoksayma istisnası
+      const kitapYoksay = (zorlukSecimi === '6' && Math.random() < 0.7);
+
+      if (typeof ACILIS_KITABI !== 'undefined' && !kitapYoksay) {
+        // Hamle geçmişini temizleyip düz bir dizi haline getirelim (+ ve # işaretlerini siliyoruz)
+        let temizGecmis = [];
+        for (let h of hamleGecmisi) {
+          if (h.beyaz) temizGecmis.push(h.beyaz.replace(/[+#]/g, ''));
+          if (h.siyah) {
+            const temizSiyah = h.siyah.replace(/[+#]/g, '');
+            if (temizSiyah) temizGecmis.push(temizSiyah);
+          }
+        }
+        const gecmisAnahtari = temizGecmis.join(' ');
+        const kitaptakiHamle = ACILIS_KITABI[gecmisAnahtari];
+
+        if (kitaptakiHamle) {
+          let hedefNotasyonlar = [];
+          if (Array.isArray(kitaptakiHamle)) {
+            hedefNotasyonlar = kitaptakiHamle;
+          } else {
+            hedefNotasyonlar = [kitaptakiHamle];
+          }
+
+          // Olası hamleler içinden kitaptaki önerilen hamlelerle eşleşenleri bulalım
+          let eslesenHamleler = [];
+          for (let h of olasiHamleler) {
+            const notasyon = getHamleNotasyonu(h.eskiS, h.eskiX, h.yeniS, h.yeniX, tahta);
+            if (hedefNotasyonlar.includes(notasyon)) {
+              eslesenHamleler.push({ hamle: h, notasyon: notasyon });
+            }
+          }
+
+          if (eslesenHamleler.length > 0) {
+            // Eşleşen hamleler içinden rastgele birini seç
+            const secilenObj = eslesenHamleler[Math.floor(Math.random() * eslesenHamleler.length)];
+            secilenHamle = secilenObj.hamle;
+            kitaptanHamleSecildi = true;
+            console.log(`[Açılış Kitabı] Hamle seçildi: ${secilenObj.notasyon} (Anahtar: "${gecmisAnahtari}")`);
+          }
+        }
+      }
+
+      if (kitaptanHamleSecildi && secilenHamle) {
+        // Kitaptan hamle oynatılıyorsa Minimax algoritması hiç çalıştırılmaz!
+        botunSonDurumu = 'hamleYapti';
+
+        let gecikmeSuresi = 1200;
+        if (zorlukSecimi === '5') {
+          gecikmeSuresi = 100;
+        }
+
+        // Bota şah çekilmişse ekstradan 1.5 saniye (1500 ms) daha beklesin
+        if (sahTehditteMi(bilgisayarRengi, tahta)) {
+          gecikmeSuresi += 1500;
+        }
+
+        if (kalanSure[bilgisayarRengi] < 60) {
+          gecikmeSuresi = 0;
+        }
+
+        // Açılıştaki ilk hamlede default olarak 1 saniye delay olsun
+        let botunIlkHamlesi = false;
+        if (bilgisayarRengi === SIYAH) {
+          if (hamleGecmisi.length === 0 || (hamleGecmisi.length === 1 && (!hamleGecmisi[0].siyah || hamleGecmisi[0].siyah === ''))) {
+            botunIlkHamlesi = true;
+          }
+        } else {
+          if (hamleGecmisi.length === 0) {
+            botunIlkHamlesi = true;
+          }
+        }
+        if (botunIlkHamlesi) {
+          gecikmeSuresi = 1000;
+        }
+
+        // Seçim sarı ışığını hamlenin yapılmasına 300 ms kala yakalım (gecikme 300 ms'den büyükse)
+        const isikGecikmesi = Math.max(0, gecikmeSuresi - 300);
+        setTimeout(() => {
+          seciliKare = { satir: secilenHamle.eskiS, sutun: secilenHamle.eskiX };
+          tahtayiCiz();
+        }, isikGecikmesi);
+
+        setTimeout(() => {
+          aiDusununuyor = false;
+          hamleYap(secilenHamle.eskiS, secilenHamle.eskiX, secilenHamle.yeniS, secilenHamle.yeniX);
+        }, gecikmeSuresi);
+
+        return; // Fonksiyondan erken çıkarak Minimax hesaplamasını atlıyoruz!
+      }
+      // === AÇILIŞ KİTABI ENTEGRASYONU SONU ===
+
+      // 1. Tahtadaki anlık taş sayısını hesaplayalım
+      let tasSayisi = 0;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (tahta[r][c]) tasSayisi++;
+        }
+      }
+
+      let derinlik = 3;
+
+      if (zorlukSecimi === '6') {
+        // Yeşil Elma (Kaotik) için rastgele derinlik: 2 veya 3
+        derinlik = Math.random() < 0.5 ? 2 : 3;
+        console.log(`Kaotik Bot (Yeşil Elma) Seçilen Derinlik: ${derinlik}`);
+      } else {
+        if (zorlukSecimi === '3') {
+          // bot1 için depth = 4
+          derinlik = 4;
+        } else {
+          // bot2 (4) ve bot3 (5) için kendi derinlik değerleri (4 ve 5)
+          derinlik = parseInt(zorlukSecimi) || 3;
+        }
+
+        // 2. Dinamik Derinlik Artışı (Depth Extension)
+        const eskiDerinlik = derinlik;
+        if (tasSayisi <= 5) {
+          derinlik += 2;
+        } else if (tasSayisi >= 6 && tasSayisi <= 10) {
+          derinlik += 1;
+        }
+
+        if (derinlik !== eskiDerinlik) {
+          console.log(`[Dinamik Derinlik Artışı] Taş Sayısı: ${tasSayisi}, Varsayılan Derinlik: ${eskiDerinlik} -> Yeni Derinlik: ${derinlik}`);
+        }
+      }
+
+      console.log(`Taş Sayısı: ${tasSayisi}, Dinamik Derinlik: ${derinlik}`);
+
+      let hamleSkorlari = olasiHamleler.map(h => ({ hamle: h, puan: 0 }));
+
+      if (zorlukSecimi === '6') {
+        // Kaotik Bot (Yeşil Elma) - İteratif Arama yapma, tek seferde hesapla
+        for (let obj of hamleSkorlari) {
+          const kopya = tahtaKopyala(tahta);
+          aiSanalHamleUygula(kopya, obj.hamle);
+
+          // Tarayıcının donmaması için es
+          await new Promise(r => setTimeout(r, 0));
+
+          let puan = minimax(kopya, derinlik - 1, -Infinity, Infinity, (bilgisayarRengi === BEYAZ));
+
+          // Üçlü tekrar (beraberlik) kontrolü
+          const simPozStr = serializeTahta(kopya, oyuncuRengi);
+          let simTekrarSayisi = 0;
+          for (let p of pozisyonGecmisi) {
+            if (p === simPozStr) simTekrarSayisi++;
+          }
+
+          if (simTekrarSayisi >= 2) {
+            const botAvantajliMi = bilgisayarRengi === SIYAH ? (puan > 0) : (puan < 0);
+            if (botAvantajliMi) {
+              puan = bilgisayarRengi === SIYAH ? -99999 : 99999;
+            } else {
+              puan = 0;
+            }
+          }
+
+          obj.puan = puan;
+        }
+
+        // Hamleleri skorlarına göre diz (en iyi hamle en başta olacak şekilde)
+        if (bilgisayarRengi === SIYAH) {
+          hamleSkorlari.sort((a, b) => b.puan - a.puan);
+        } else {
+          hamleSkorlari.sort((a, b) => a.puan - b.puan);
+        }
+      } else {
+        // Kademeli Derinleşme (Iterative Deepening) Algoritması
+        for (let d = 1; d <= derinlik; d++) {
+          for (let obj of hamleSkorlari) {
+            const kopya = tahtaKopyala(tahta);
+            aiSanalHamleUygula(kopya, obj.hamle);
+
+            // Arayüzün nefes alması için asenkron es (yield)
+            await new Promise(r => setTimeout(r, 0));
+
+            // Minimax araması: d - 1 derinliğinde çağırıyoruz
+            let puan = minimax(kopya, d - 1, -Infinity, Infinity, (bilgisayarRengi === BEYAZ));
+
+            // Üçlü tekrar (beraberlik) kontrolü
+            const simPozStr = serializeTahta(kopya, oyuncuRengi);
+            let simTekrarSayisi = 0;
+            for (let p of pozisyonGecmisi) {
+              if (p === simPozStr) simTekrarSayisi++;
+            }
+
+            if (simTekrarSayisi >= 2) {
+              const botAvantajliMi = bilgisayarRengi === SIYAH ? (puan > 0) : (puan < 0);
+              if (botAvantajliMi) {
+                puan = bilgisayarRengi === SIYAH ? -99999 : 99999;
+              } else {
+                puan = 0;
+              }
+            }
+
+            obj.puan = puan;
+          }
+
+          // Her derinlik seviyesinin sonunda hamleleri yeni skorlarına göre sırala (Move Ordering)
+          // Bir sonraki derinlik iterasyonunda minimax bu sıralanmış listeyi en iyi hamleden başlayarak arayacaktır!
+          if (bilgisayarRengi === SIYAH) {
+            hamleSkorlari.sort((a, b) => b.puan - a.puan);
+          } else {
+            hamleSkorlari.sort((a, b) => a.puan - b.puan);
+          }
+        }
+        console.log(`Iterative Deepening Tamamlandı. Ulaşılan Derinlik: ${derinlik}`);
+      }
+
+      let secilen;
+
+      if (zorlukSecimi === '6') {
+        // Yeşil Elma (Kaotik) oyun stili
+        const zar = Math.random();
+        if (zar < 0.60) {
+          // %60 ihtimalle en iyi 1. hamle
+          secilen = hamleSkorlari[0].hamle;
+          console.log("Kaotik Bot (Yeşil Elma): %60 olasılıkla 1. en iyi hamle seçildi.");
+        } else if (zar < 0.90) {
+          // %30 ihtimalle en iyi 2. hamle (varsa)
+          const secilenObj = hamleSkorlari[1] || hamleSkorlari[0];
+          secilen = secilenObj.hamle;
+          console.log("Kaotik Bot (Yeşil Elma): %30 olasılıkla 2. en iyi hamle seçildi.");
+        } else {
+          // %10 ihtimalle en iyi 3. veya 4. hamle (varsa)
+          const adaylar = [];
+          if (hamleSkorlari[2]) adaylar.push(hamleSkorlari[2]);
+          if (hamleSkorlari[3]) adaylar.push(hamleSkorlari[3]);
+
+          if (adaylar.length > 0) {
+            const secilenObj = adaylar[Math.floor(Math.random() * adaylar.length)];
+            secilen = secilenObj.hamle;
+            console.log("Kaotik Bot (Yeşil Elma): %10 olasılıkla 3. veya 4. en iyi hamle seçildi.");
+          } else {
+            // Aday yoksa eldeki en son / en düşük kaliteli hamle
+            const secilenObj = hamleSkorlari[hamleSkorlari.length - 1];
+            secilen = secilenObj.hamle;
+            console.log("Kaotik Bot (Yeşil Elma): Olasılık fallback ile son sıradaki hamle seçildi.");
+          }
+        }
+      } else {
+        // Standart Botlar: %100 doğruluk ile en iyi hamle(ler) arasından seçim yapar
+        let enIyiPuan = hamleSkorlari[0].puan;
+        let enIyiHamleler = hamleSkorlari.filter(hs => hs.puan === enIyiPuan).map(hs => hs.hamle);
+        secilen = enIyiHamleler[Math.floor(Math.random() * enIyiHamleler.length)];
+      }
+
+      // Seçilen hamlenin gerçek skorunu bulalım
+      const secilenSkorObj = hamleSkorlari.find(hs => hs.hamle === secilen);
+      const yeniSkor = secilenSkorObj ? secilenSkorObj.puan : 0;
+
+      // Durum analizi ve tetikleyiciler
+      botunSonDurumu = 'hamleYapti';
+      const skorArtisi = yeniSkor - oncekiSkor;
+      const botAvantajYakaladi = bilgisayarRengi === SIYAH ? (skorArtisi >= 30) : (skorArtisi <= -30);
+      const botAvantajKaybetti = bilgisayarRengi === SIYAH ? (skorArtisi <= -30) : (skorArtisi >= 30);
+      const botKazaniyor = bilgisayarRengi === SIYAH ? (yeniSkor > 50) : (yeniSkor < -50);
+      const botKaybediyor = bilgisayarRengi === SIYAH ? (yeniSkor < -50) : (yeniSkor > 50);
+
+      if (botAvantajYakaladi) {
+        botunSonDurumu = 'avantajYakaladi';
+      } else if (botAvantajKaybetti) {
+        botunSonDurumu = 'avantajKaybetti';
+      } else if (botKazaniyor) {
+        botunSonDurumu = 'kazaniyor';
+      } else if (botKaybediyor) {
+        botunSonDurumu = 'kaybediyor';
+      }
+
+      oncekiSkor = yeniSkor;
+
+      let gecikmeSuresi = 1200;
+      if (zorlukSecimi === '5') {
+        gecikmeSuresi = 100;
+      }
+
+      // Bota şah çekilmişse ekstradan 1.5 saniye (1500 ms) daha beklesin
+      if (sahTehditteMi(bilgisayarRengi, tahta)) {
+        gecikmeSuresi += 1500;
+      }
+
+      if (kalanSure[bilgisayarRengi] < 60) {
+        gecikmeSuresi = 0;
+      }
+
+      // Açılıştaki ilk hamlede default olarak 1 saniye delay olsun
+      let botunIlkHamlesi = false;
+      if (bilgisayarRengi === SIYAH) {
+        if (hamleGecmisi.length === 0 || (hamleGecmisi.length === 1 && (!hamleGecmisi[0].siyah || hamleGecmisi[0].siyah === ''))) {
+          botunIlkHamlesi = true;
+        }
+      } else {
+        if (hamleGecmisi.length === 0) {
+          botunIlkHamlesi = true;
+        }
+      }
+      if (botunIlkHamlesi) {
+        gecikmeSuresi = 1000;
+      }
+
+      // Seçim sarı ışığını hamlenin yapılmasına 300 ms kala yakalım (eğer gecikme 300 ms'den büyükse)
+      const isikGecikmesi = Math.max(0, gecikmeSuresi - 300);
+      setTimeout(() => {
+        seciliKare = { satir: secilen.eskiS, sutun: secilen.eskiX };
+        tahtayiCiz();
+      }, isikGecikmesi);
+
+      setTimeout(() => {
+        aiDusununuyor = false;
+        hamleYap(secilen.eskiS, secilen.eskiX, secilen.yeniS, secilen.yeniX);
+      }, gecikmeSuresi);
+    }
+
+    // ===== OYUNU BAŞLAT =====
+    oyunuBaslat();
+  </script>
+</body>
+
+</html>
