@@ -163,25 +163,28 @@ const botCumleleri = {
     // 6: Yeşil Elma
     '6': {
         baslangic: [
-            "Başlayalım... Ama gözün tahtada olsun, bende değil."
+            "Başlayalım... Ama gözün tahtada olsun, bende değil.",
+            "Bu an için bunca sene neden bekledin?"
         ],
         dusunuyor: [
             "Of. Sana bakmaktan tahtaya odaklanamıyorum ki.",
             "Seni köşeye sıkıştıracak o ince hamleyi arıyorum...",
             "Aklından neler geçiyor acaba? Onu okumaya çalışıyorum...",
-            "Beni bir ömür beklemez misin?"
+            "Beni bir ömür beklemez misin?",
+            "Ojelerim nasıl?"
         ],
         hamleYapti: [
             "Çok acımasız bir hamle değildi bence, sana kıyamadım.",
             "Hadi tatlım. Bakalım ne yapacaksın?",
             "Sıra sende yakışıklı, şaşırt beni.",
-            "Biliyor musun, geçen gece rüyamda seni gördüm."
+            "Biliyor musun, geçen gece rüyamda seni gördüm.",
+            "Heyecanlandıysan daha yavaş oynayalım."
         ],
         sahCekti: [
             "Şahını biraz terleteceğim galiba. Yakaladım seni!"
         ],
         sahYedi: [
-            "Yapmasanaaa."
+            "Ya oof!"
         ],
         terfi: [
             "Ta-daa! Piyonum kraliçe oldu, tıpkı benim gibi!"
@@ -196,11 +199,13 @@ const botCumleleri = {
         ],
         kazaniyor: [
             "Kazanmak üzereyim galiba. Ama seni üzmek istemem ki...",
-            "Kraliçen olmama çok az kaldı tatlım!"
+            "Kraliçen olmama çok az kaldı tatlım!",
+            "Maalesef senin için üzülüyorum ama en azından taşlarına dokunuyorum."
         ],
         kaybediyor: [
             "Oyunda kaybeden aşkta kazanır derler ama...",
-            "Yaa, hiç acımıyorsun bana! Çok kötüsün..."
+            "Yaa, hiç acımıyorsun bana! Çok kötüsün...",
+            "Ya hile yapıyosun sen."
         ],
         kazandi: [
             "Kazandıım! Üzülme, sana teselli sarılması verebilirim..."
